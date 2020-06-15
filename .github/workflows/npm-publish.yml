@@ -18,14 +18,14 @@ jobs:
       - run: npm install -D vuepress
       - run: java -jar ./node-1.0-SNAPSHOT-jar-with-dependencies.jar
       - run: npm run docs:build
-      - run: cd ./dist
-      - run: echo 'tiankafei.top' > CNAME
-      - run: git config --global user.email "weishuangshuang89@163.com"
-      - run: git config --global user.name "tiankafei"
-      - run: git init
-      - run: git add -A
-      - run: git commit -m '提交部署文件'
-      - uses: ad-m/github-push-action@master
+    
+      #发布到tiankafei.github.io/master
+      - name: Deploy tiankafei.github.io/master
+        uses: peaceiris/actions-gh-pages@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EXTERNAL_REPOSITORY: tiankafei/tiankafei.github.io #可以新建一个mybells.github.io仓库发布到master
+          PUBLISH_BRANCH: master
+          PUBLISH_DIR: dist
         with:
-          github_token: ${{secrets.GITHUB_TOKEN}}
-      - run: git push -f git@github.com:tiankafei/tiankafei.github.io.git master
+          emptyCommits: false
