@@ -18,4 +18,10 @@ jobs:
           node-version: 12
       - run: npm install -D vuepress
       - run: java -jar ./node-1.0-SNAPSHOT-jar-with-dependencies.jar
-        
+      - run: npm run docs:build
+      - run: cd ./dist
+      - run: echo 'tiankafei.top' > CNAME
+      - run: git init
+      - run: git add .
+      - run: git commit -m '提交部署文件'
+      - run: git push -f git@github.com:tiankafei/tiankafei.git master
