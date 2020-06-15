@@ -37,7 +37,6 @@ jobs:
     #    emptyCommits: false
         
     # 发布到 tiankafei.github.io/master
-    - name: Deploy
     - uses: peaceiris/actions-gh-pages@v2.5.0
     - run: cd ./dist
     - run: echo 'tiankafei.top' > CNAME
