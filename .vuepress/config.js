@@ -26,7 +26,7 @@ module.exports = {
           {text: '第1阶段单词记忆', link: '/tiankafei-docs-en/第1阶段单词记忆/'},
         ]
       },*/
-      {text: 'GitHub', link: 'https://github.com/tiankafei/tiankafei'},
+      {text: 'GitHub', link: 'https://github.com/tiankafei/docs'},
     ],
     sidebar: {
       '/guide/': [
