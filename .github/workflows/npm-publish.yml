@@ -24,7 +24,7 @@ jobs:
       env:
         ACTIONS_DEPLOY_KEY: ${{secrets.key}}
         PUBLISH_BRANCH: gh-pages
-        PUBLISH_DIR: docs/.vuepress/dist
+        PUBLISH_DIR: dist
 
     # #发布到MyBlog/gh-pages 查看https://mybells.github.io/MyBlog/，需要修改base配置为MyBlog，修改图片路径
     # - name: Deploy MyBlog/gh-pages
