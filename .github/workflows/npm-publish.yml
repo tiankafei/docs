@@ -8,36 +8,36 @@ on:
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
-    strategy: 
-      matrix:
-        node-version: [12]
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v1 # 使用的动作。格式：userName/repoName。作用：检出仓库，获取源码。 官方actions库：https://github.com/actions
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v1 # 作用：安装nodejs
-      with:
-        node-version: ${{ matrix.node-version }} # 版本
-    - name: run deploy.sh # 步骤3 （同时部署到github和coding）
-      env: # 设置环境变量
-        GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
-      run: npm install && npm run deploy # 执行的命令
+    #strategy: 
+    #  matrix:
+    #    node-version: [12]
+    #steps:
+    #- name: Checkout
+    #  uses: actions/checkout@v1 # 使用的动作。格式：userName/repoName。作用：检出仓库，获取源码。 官方actions库：https://github.com/actions
+    #- name: Use Node.js ${{ matrix.node-version }}
+    #  uses: actions/setup-node@v1 # 作用：安装nodejs
+    #  with:
+    #    node-version: ${{ matrix.node-version }} # 版本
+    #- name: run deploy.sh # 步骤3 （同时部署到github和coding）
+    #  env: # 设置环境变量
+    #    GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+    #  run: npm install && npm run deploy # 执行的命令
 
     
-    #steps:
-    #- uses: actions/checkout@v1
-    #- run: npm ci
-    #- run: npm install -D vuepress
-    #- run: java -jar ./node-1.0-SNAPSHOT-jar-with-dependencies.jar
-    #- run: npm run docs:build
+    steps:
+    - uses: actions/checkout@v1
+    - run: npm ci
+    - run: npm install -D vuepress
+    - run: java -jar ./node-1.0-SNAPSHOT-jar-with-dependencies.jar
+    - run: npm run docs:build
 
     # 发布到 tiankafei.github.io/master
-    #- name: Deploy
-    #  uses: peaceiris/actions-gh-pages@v2.5.0
-    #  env:
-    #    ACTIONS_DEPLOY_KEY: ${{secrets.key}}
-    #    PUBLISH_BRANCH: gh-pages
-    #    PUBLISH_DIR: dist
+    - name: Deploy
+      uses: peaceiris/actions-gh-pages@v2.5.0
+      env:
+        ACTIONS_DEPLOY_KEY: ${{secrets.key}}
+        PUBLISH_BRANCH: gh-pages
+        PUBLISH_DIR: dist
         
     # 发布到 tiankafei.github.io/master
     #- name: Deploy
