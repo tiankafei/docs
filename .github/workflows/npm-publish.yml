@@ -8,22 +8,21 @@ on:
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
+    strategy: 
+      matrix:
+        node-version: [10.x]
     steps:
-    - uses: actions/checkout@v1
-    - run: npm ci
-    - run: npm install -D vuepress
-    - run: java -jar ./node-1.0-SNAPSHOT-jar-with-dependencies.jar
-    - run: npm run docs:build
-        
-    - name: vuepress-deploy
-      uses: jenkey2011/vuepress-deploy@master
-      env:
+    - name: Checkout
+      uses: actions/checkout@v1 # 使用的动作。格式：userName/repoName。作用：检出仓库，获取源码。 官方actions库：https://github.com/actions
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v1 # 作用：安装nodejs
+      with:
+        node-version: ${{ matrix.node-version }} # 版本
+    - name: run deploy.sh # 步骤3 （同时部署到github和coding）
+      env: # 设置环境变量
         ACTIONS_DEPLOY_KEY: ${{secrets.key}}
-        TARGET_REPO: tiankafei/tiankafei.github.io
-        TARGET_BRANCH: master
-        BUILD_SCRIPT: npm install
-        BUILD_DIR: dist
-        CNAME: tiankafei.top
+      run: bash deploy.sh # 执行的命令
+
     
     #steps:
     #- uses: actions/checkout@v1
