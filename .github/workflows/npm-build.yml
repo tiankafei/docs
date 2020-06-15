@@ -16,6 +16,19 @@ jobs:
       - uses: actions/setup-node@v1
         with:
           node-version: 12
+      - run: mkdir ./.vuepress/public
+      - run: mkdir ./.vuepress/public/images
+      - run: mkdir ./.vuepress/public/spring-images
+      - run: cp -r ./tiankafei-logo/images/* ./.vuepress/public/images
+      - run: cp -r ./tiankafei-docs-java/images/* ./.vuepress/public/images
+      - run: cp -r ./tiankafei-docs-spring/images/* ./.vuepress/public/images
+      - run: cp -r ./tiankafei-docs-架构/images/* ./.vuepress/public/images
+      - run: cp -r ./tiankafei-docs-大数据/images/* ./.vuepress/public/images
+      - run: cp -r ./tiankafei-docs-linux/images/* ./.vuepress/public/images
+      - run: cp -r ./tiankafei-docs-云/images/* ./.vuepress/public/images
+      - run: cp -r ./tiankafei-docs-其他/images/* ./.vuepress/public/images
+      - run: cp -r ./tiankafei-docs-en/images/* ./.vuepress/public/images
+      - run: cp -r ./tiankafei-docs-spring/spring-images/* ./.vuepress/public/spring-images
       - run: npm install -D vuepress
       - run: npm run docs:build
         
