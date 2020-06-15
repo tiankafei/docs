@@ -1,6 +1,6 @@
 cd /d %~dp0
 
-rem æ›´æ–°ä»£ç 
+rem ¸üĞÂ´úÂë
 git pull origin master
 
 pause
