@@ -25,6 +25,6 @@ jobs:
       - run: git init
       - run: git add -A
       - run: git commit -m '提交部署文件'
-      - run: git push -f git@github.com:tiankafei/tiankafei.git master
+      - run: git push -f https://github.com/tiankafei/tiankafei.git master
         env:
           NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
