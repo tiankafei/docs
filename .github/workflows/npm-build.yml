@@ -18,5 +18,4 @@ jobs:
           node-version: 12
       - run: npm install -D vuepress
       - run: ./deploy.sh
-      - run: npm run docs:build
         
