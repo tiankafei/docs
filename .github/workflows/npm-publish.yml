@@ -19,11 +19,20 @@ jobs:
     - run: cd ..
 
     # 发布到 tiankafei.github.io/master
+    #- name: Deploy
+    #  uses: peaceiris/actions-gh-pages@v2.5.0
+    #  env:
+    #    ACTIONS_DEPLOY_KEY: ${{secrets.key}}
+    #    PUBLISH_BRANCH: gh-pages
+    #    PUBLISH_DIR: dist
+        
+    # 发布到 tiankafei.github.io/master
     - name: Deploy
       uses: peaceiris/actions-gh-pages@v2.5.0
       env:
         ACTIONS_DEPLOY_KEY: ${{secrets.key}}
-        PUBLISH_BRANCH: gh-pages
+        EXTERNAL_REPOSITORY: tiankafei/tiankafei.github.io
+        PUBLISH_BRANCH: master
         PUBLISH_DIR: dist
 
     # #发布到MyBlog/gh-pages 查看https://mybells.github.io/MyBlog/，需要修改base配置为MyBlog，修改图片路径
