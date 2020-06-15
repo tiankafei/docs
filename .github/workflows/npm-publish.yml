@@ -1,0 +1,41 @@
+# This workflow will run tests using node and then publish a package to GitHub Packages when a release is created
+# For more information see: https://help.github.com/actions/language-and-framework-guides/publishing-nodejs-packages
+
+name: Node.js Package
+
+on:
+  push:
+    branches:    
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 12
+      - run: npm install -D vuepress
+      - run: java -jar ./node-1.0-SNAPSHOT-jar-with-dependencies.jar
+      - run: npm run docs:build
+
+  publish-gpr:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 12
+          registry-url: https://npm.pkg.github.com/
+      - run: cd ./dist
+      - run: echo 'tiankafei.top' > CNAME
+      - run: git config --global user.email "weishuangshuang89@163.com"
+      - run: git config --global user.name "tiankafei"
+      - run: git init
+      - run: git add -A
+      - run: git commit -m '提交部署文件'
+      - run: git push -f git@github.com:tiankafei/tiankafei.git master
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
