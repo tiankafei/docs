@@ -21,7 +21,7 @@ jobs:
     - name: run deploy.sh # 步骤3 （同时部署到github和coding）
       env: # 设置环境变量
         ACTIONS_DEPLOY_KEY: ${{secrets.key}}
-      run: ./deploy.sh # 执行的命令
+      run: npm install && npm run deploy # 执行的命令
 
     
     #steps:
