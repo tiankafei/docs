@@ -11,21 +11,32 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v1
-        with:
-          node-version: 12
-      - run: npm install -D vuepress
-      - run: java -jar ./node-1.0-SNAPSHOT-jar-with-dependencies.jar
-      - run: npm run docs:build
-      - run: cd ./dist
-      - run: echo 'tiankafei.top' > CNAME
-      - run: git config --global user.email "weishuangshuang89@163.com"
-      - run: git config --global user.name "tiankafei"
-      - run: git init
-      - run: git add -A
-      - run: git commit -m '提交部署文件'
-      - run: git push -f git@github.com:tiankafei/tiankafei.git master
-      - with: 
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+    - name: checkout and setup
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v1
+      with:
+        node-version: 12
+
+    - name: install and build
+      run: | 
+        npm install -D vuepress
+        java -jar ./node-1.0-SNAPSHOT-jar-with-dependencies.jar
+        npm run docs:build
+
+    - name: commit
+      run: |
+        cd ./dist
+        echo 'tiankafei.top' > CNAME
+        git config --global user.email "weishuangshuang89@163.com"
+        git config --global user.name "tiankafei"
+        git init
+        git add -A
+        git commit -m '提交部署文件'
+        git push -f git@github.com:tiankafei/tiankafei.git master
+
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
