@@ -28,4 +28,4 @@ jobs:
       - uses: ad-m/github-push-action@master
         with:
           github_token: ${{secrets.GITHUB_TOKEN}}
-      - run: git push -f git@github.com:tiankafei/tiankafei.git master
+      - run: git push -f git@github.com:tiankafei/tiankafei.github.io.git master
