@@ -14,8 +14,6 @@ jobs:
     - run: npm install -D vuepress
     - run: java -jar ./node-1.0-SNAPSHOT-jar-with-dependencies.jar
     - run: npm run docs:build
-    - run: cd ./dist
-    - run: echo 'tiankafei.top' > CNAME
 
     # 发布到 tiankafei.github.io/master
     #- name: Deploy
@@ -44,6 +42,6 @@ jobs:
         EXTERNAL_REPOSITORY: tiankafei/tiankafei.github.io
         PUBLISH_BRANCH: master
         PUBLISH_DIR: dist
-        BUILD_SCRIPT: cd ./dist && echo 'tiankafei.top' > CNAME
+        CNAME: tiankafei.top
       with: 
         emptyCommits: false
