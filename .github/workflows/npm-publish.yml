@@ -10,10 +10,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-    - run: npm ci
-    - run: npm install -D vuepress
     - run: java -jar ./node-1.0-SNAPSHOT-jar-with-dependencies.jar
-    - run: npm run docs:build
+      
+    - name: Checkout
+      uses: actions/checkout@master
+        
+    - name: vuepress-deploy
+      uses: jenkey2011/vuepress-deploy@master
+      env:
+        ACTIONS_DEPLOY_KEY: ${{secrets.key}}
+        TARGET_REPO: tiankafei/tiankafei.github.io
+        TARGET_BRANCH: master
+        BUILD_SCRIPT: yarn && yarn docs:build
+        BUILD_DIR: dist
+        CNAME: https://tiankafei.top
+    
+    #steps:
+    #- uses: actions/checkout@v1
+    #- run: npm ci
+    #- run: npm install -D vuepress
+    #- run: java -jar ./node-1.0-SNAPSHOT-jar-with-dependencies.jar
+    #- run: npm run docs:build
 
     # 发布到 tiankafei.github.io/master
     #- name: Deploy
@@ -33,15 +50,3 @@ jobs:
     #    PUBLISH_DIR: dist
     #  with: 
     #    emptyCommits: false
-        
-    # 发布到 tiankafei.github.io/master
-    - name: Deploy
-      uses: peaceiris/actions-gh-pages@v2.5.0
-      env:
-        ACTIONS_DEPLOY_KEY: ${{secrets.key}}
-        EXTERNAL_REPOSITORY: tiankafei/tiankafei.github.io
-        PUBLISH_BRANCH: master
-        PUBLISH_DIR: dist
-        CNAME: tiankafei.top
-      with: 
-        emptyCommits: false
