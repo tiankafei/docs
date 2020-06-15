@@ -14,6 +14,8 @@ cd dist
 # 如果是发布到自定义域名
 echo 'tiankafei.top' > CNAME
 
+git config --global user.email "weishuangshuang89@163.com"
+git config --global user.name "tiankafei"
 git init
 git add -A
 git commit -m 'deploy'
