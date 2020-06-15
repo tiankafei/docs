@@ -10,10 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
+    - run: npm ci
+    - run: npm install -D vuepress
     - run: java -jar ./node-1.0-SNAPSHOT-jar-with-dependencies.jar
-      
-    - name: Checkout
-      uses: actions/checkout@master
+    - run: npm run docs:build
         
     - name: vuepress-deploy
       uses: jenkey2011/vuepress-deploy@master
@@ -21,9 +21,9 @@ jobs:
         ACTIONS_DEPLOY_KEY: ${{secrets.key}}
         TARGET_REPO: tiankafei/tiankafei.github.io
         TARGET_BRANCH: master
-        BUILD_SCRIPT: yarn && yarn docs:build
+        BUILD_SCRIPT: npm install
         BUILD_DIR: dist
-        CNAME: https://tiankafei.top
+        CNAME: tiankafei.top
     
     #steps:
     #- uses: actions/checkout@v1
