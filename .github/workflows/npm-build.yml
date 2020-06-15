@@ -25,9 +25,7 @@ jobs:
       - run: cp -r ./tiankafei-docs-架构/images/* ./.vuepress/public/images
       - run: cp -r ./tiankafei-docs-大数据/images/* ./.vuepress/public/images
       - run: cp -r ./tiankafei-docs-linux/images/* ./.vuepress/public/images
-      - run: cp -r ./tiankafei-docs-云/images/* ./.vuepress/public/images
-      - run: cp -r ./tiankafei-docs-其他/images/* ./.vuepress/public/images
-      - run: cp -r ./tiankafei-docs-en/images/* ./.vuepress/public/images
+      - run: cp -r ./tiankafei-docs-other/images/* ./.vuepress/public/images
       - run: cp -r ./tiankafei-docs-spring/spring-images/* ./.vuepress/public/spring-images
       - run: npm install -D vuepress
       - run: npm run docs:build
