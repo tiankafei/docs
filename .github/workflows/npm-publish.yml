@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
+    - uses: peaceiris/actions-gh-pages@v2.5.0
     - run: npm ci
     - run: npm install -D vuepress
     - run: java -jar ./node-1.0-SNAPSHOT-jar-with-dependencies.jar
@@ -37,7 +38,7 @@ jobs:
     #    emptyCommits: false
         
     # 发布到 tiankafei.github.io/master
-    - uses: peaceiris/actions-gh-pages@v2.5.0
+    
     - run: cd ./dist
     - run: echo 'tiankafei.top' > CNAME
     - env:
