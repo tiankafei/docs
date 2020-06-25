@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
+    - run: rm -rf dist/
     - run: npm ci
     - run: npm install -D vuepress
     - run: java -jar ./node-1.0-SNAPSHOT-jar-with-dependencies.jar
