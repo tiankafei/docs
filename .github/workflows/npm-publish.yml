@@ -12,6 +12,7 @@ jobs:
     - uses: actions/checkout@v1
     - run: npm ci
     - run: npm install -D vuepress
+    - run: rm -rf dist/
     - run: java -jar ./node-1.0-SNAPSHOT-jar-with-dependencies.jar
     - run: npm run docs:build
     - run: cp CNAME dist/
