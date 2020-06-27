@@ -1,10 +1,95 @@
 # IO
 
+## CPU多级缓存
+
+![CPU](/images/CPU.png)
+
+## CPU读取数据速率
+
+![CPU读取数据速率](/images/CPU读取数据速率.png)
+
+**CPU : 内存 = 100 : 1**
+
+**内存 : 磁盘 = 100,000 : 1**
+
+## 按块读取
+
+程序局部性原理，可以提高效率，充分发挥总线`CPU`针脚等一次性读取更多数据的能力
+
 ## CPU读取文件的过程
 
+`CPU`给`DMA`发送指令，让磁盘把数据装到内存的某个位置（硬盘和内存直接打交道）。`DMA`直接内存访问。
 
+## 缓存行对齐
 
+一致性协议：[https://www.cnblogs.com/z00377750/p/9180644.html](https://www.cnblogs.com/z00377750/p/9180644.html)
 
+**CPU内部数据同步机制：**<font color="red">按缓存行</font>为单位进行数据同步的
+
+缓存行：
+
+缓存行越大，局部性空间效率越高，但读取时间慢
+缓存行越小，局部性空间效率越低，但读取时间快
+取一个折中值，目前多用：64字节
+
+```java
+// 缓存行没有对齐
+public class T03_CacheLinePadding {
+    public static volatile long[] arr = new long[2];
+    public static void main(String[] args) throws Exception {
+        Thread t1 = new Thread(()->{
+            for (long i = 0; i < 10000_0000L; i++) {
+                arr[0] = i;
+            }
+        });
+        Thread t2 = new Thread(()->{
+            for (long i = 0; i < 10000_0000L; i++) {
+                arr[1] = i;
+            }
+        });
+        final long start = System.nanoTime();
+        t1.start();
+        t2.start();
+        t1.join();
+        t2.join();
+        System.out.println((System.nanoTime() - start)/100_0000);
+    }
+}
+```
+
+```java
+// 缓存行对齐了
+// 一个long类型占用8个字节，一个缓存行占用64个字节，故声明一个长度为16的long类型的数组，只有两个值有用
+public class T04_CacheLinePadding {
+    public static volatile long[] arr = new long[16];
+    public static void main(String[] args) throws Exception {
+        Thread t1 = new Thread(()->{
+            for (long i = 0; i < 10000_0000L; i++) {
+                arr[0] = i;
+            }
+        });
+        Thread t2 = new Thread(()->{
+            for (long i = 0; i < 10000_0000L; i++) {
+                arr[8] = i;
+            }
+        });
+        final long start = System.nanoTime();
+        t1.start();
+        t2.start();
+        t1.join();
+        t2.join();
+        System.out.println((System.nanoTime() - start)/100_0000);
+    }
+}
+```
+
+**缓存行对齐：**对于有些特别敏感的数字，会存在线程高竞争的访问，为了保证不发生伪共享，可以使用缓存航对齐的编程方式
+
+对于有些特别敏感的数字，会存在线程高竞争的访问，为了保证不发生伪共享，可以使用缓存航对齐的编程方式。
+
+JDK7中，很多采用long padding提高效率
+
+JDK8，加入了@Contended注解（实验）需要加上：JVM -XX:-RestrictContended
 
 ## Page Cache（4k,页缓存）
 
