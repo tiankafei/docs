@@ -10,7 +10,7 @@ module.exports = {
   themeConfig: {
     nav: [
       {text: '首页', link: '/'},
-      {text: '导航', link: '/guide/'},
+      /*{text: '导航', link: '/guide/'},*/
       {text: 'Java', link: '/tiankafei-docs-java/Java基础'},
       {text: 'Spring', link: '/tiankafei-docs-spring/spring学习笔记/'},
       {text: '架构', link: '/tiankafei-docs-架构/MySQL调优/'},
@@ -26,7 +26,7 @@ module.exports = {
           {text: '第1阶段单词记忆', link: '/tiankafei-docs-en/第1阶段单词记忆/'},
         ]
       },*/
-      {text: 'GitHub', link: 'https://github.com/tiankafei/docs'},
+      {text: 'GitHub', link: 'https://github.com/tiankafei/tiankafei'},
     ],
     sidebar: {
       '/guide/': [
