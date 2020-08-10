@@ -39,56 +39,67 @@
 | bigint             | -9223372036854775808 | 9,223,372,036,854,775,807  |
 | bigint unsigned    | 0                    | 18,446,744,073,709,551,615 |
 
+## 优化
+
+### RBO：基于规则的优化
+
+### CBO：基于成本的优化
+
 ## 性能监控
 
 ### 使用show profile查询剖析工具，可以指定具体的type
 
+```mysql
+-- 可以查看执行sql的Query_ID
+show profiles;
+```
+
 1. all：显示所有性能信息
 
    ```mysql
-   show profile all for query n
+   show profile all for query Query_ID
    ```
 
 2. block io：显示块io操作的次数
 
    ```mysql
-   show profile block io for query n
+   show profile block io for query Query_ID
    ```
 
 3. context switches：显示上下文切换次数，被动和主动
 
    ```mysql
-   show profile context switches for query n
+   show profile context switches for query Query_ID
    ```
 
 4. cpu：显示用户cpu时间、系统cpu时间
 
    ```mysql
-   show profile cpu for query n
+   show profile cpu for query Query_ID
    ```
 
 5. IPC：显示发送和接受的消息数量
 
    ```mysql
-   show profile ipc for query n
+   show profile ipc for query Query_ID
    ```
 
 6. page faults：显示页错误数量
 
    ```mysql
-   show profile page faults for query n
+   show profile page faults for query Query_ID
    ```
 
 7. source：显示源码中的函数名称与位置
 
    ```mysql
-   show profile source for query n
+   show profile source for query Query_ID
    ```
 
 8. swaps：显示swap的次数
 
    ```mysql
-   show profile swaps for query n
+   show profile swaps for query Query_ID
    ```
 
 ### 使用performance schema来更加容易的监控mysql
