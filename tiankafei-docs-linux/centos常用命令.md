@@ -120,18 +120,21 @@ chkconfig iptables off
 
 ```shell
 systemctl status firewalld.service
+systemctl status NetworkManager.service
 ```
 
 停止服务
 
 ```shell
 systemctl stop firewalld.service
+systemctl stop NetworkManager.service
 ```
 
 设置开机禁止启动
 
 ```shell
 systemctl disable firewalld.service
+systemctl disable NetworkManager.service
 ```
 
 ## 时间同步阿里云
@@ -149,8 +152,16 @@ yum install ntp  -y
 vi /etc/ntp.conf
 
 ```sh
-server ntp1.aliyun.com
-#注释掉其他的server
+# 注释掉其他的server
+server ntp2.aliyun.com iburst
+server ntp3.aliyun.com iburst
+server ntp4.aliyun.com iburst
+
+
+# 重启ntp
+systemctl restart ntpd
+# 开机自动启动
+systemctl enable ntpd
 ```
 
 ### CentOS6
