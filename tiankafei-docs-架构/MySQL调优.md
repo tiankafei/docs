@@ -651,6 +651,12 @@ SELECT event_id,event_name,source,timer_wait,object_name,index_name,operation,ne
 
 ### 存储引擎的选择
 
+> 区别在于：数据文件的组织形式
+>
+> 聚簇索引：数据和索引存放在一起
+>
+> 非聚簇索引：数据和文件没有放在一起
+
 ![MySQL引擎区别](/images/MySQL引擎区别.png)
 
 #### InnoDB
