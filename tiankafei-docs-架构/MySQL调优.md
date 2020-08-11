@@ -651,6 +651,8 @@ SELECT event_id,event_name,source,timer_wait,object_name,index_name,operation,ne
 
 ### 存储引擎的选择
 
+![MySQL引擎区别](/images/MySQL引擎区别.png)
+
 #### InnoDB
 
 #### MyISAM
