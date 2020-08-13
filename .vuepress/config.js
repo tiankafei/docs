@@ -177,7 +177,8 @@ module.exports = {
           collapsable: false,
           children: [
             '词性语法学习',
-            '第1阶段单词记忆',
+            '泛背单词第01天',
+            '泛背单词第02天',
           ]
         }
       ]
