@@ -30,23 +30,43 @@
 >
 > Jrockit：BEA，曾经号称世界上最快的JVM，被oracle收购，合并与Hotspot
 >
-> LiquidVM：直接针对硬件
+> LiquidVM：直接针对硬件（底层没有操作系统）
 >
 > J9 -IBM
 >
 > azul zing：最新垃圾回收的业界标杆
 >
+> > 垃圾回收号称1ms实现，Hotspot吸收了其优点，升级到后来的ZGC
+>
 > Microsoft VM
 
+### JDK JRE JVM的区别
 
+![JDK-JRE-JVM](/images/JDK-JRE-JVM.png)
 
 ## class文件结构
 
+### class文件二进制文件
 
+![class二进制文件示例](/images/class二进制文件示例.png)
+
+### class文件解析
+
+![class文件解析](/images/class文件解析.png)
+
+### class文件查看方法
+
+- javap -v class文件名
+- JBE（可以直接修改）
+- JClassLib（IDEA插件之一）
+
+### class文件结构
+
+![java1.8类文件格式第一版](/images/java1.8类文件格式第一版.png)
 
 ## 内存加载过程
 
-
+ 
 
 ## 运行时内存结构
 
