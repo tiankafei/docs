@@ -46,12 +46,12 @@ module.exports = {
             'Java基础',
             'java集合',
             '多线程与高并发-JUC',
+			'JVM从入门到精通',
             'IO详情介绍',
             'Lambda表达式和StreamAPI用法',
             '设计模式',
             '树结构',
             '位运算',
-            'JVM从入门到精通',
           ]
         }
       ],
