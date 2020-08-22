@@ -98,9 +98,64 @@
    1. 防止反编译
    2. 防止篡改
 
+### ClassLoader源码解析
 
+```java
+protected Class<?> loadClass(String name, boolean resolve)
+    throws ClassNotFoundException {
+    synchronized (getClassLoadingLock(name)) {
+        // First, check if the class has already been loaded
+        Class<?> c = findLoadedClass(name);
+        if (c == null) {
+            long t0 = System.nanoTime();
+            try {
+                if (parent != null) {
+                    c = parent.loadClass(name, false);
+                } else {
+                    c = findBootstrapClassOrNull(name);
+                }
+            } catch (ClassNotFoundException e) {
+                // ClassNotFoundException thrown if class not found
+                // from the non-null parent class loader
+            }
+            if (c == null) {
+                // If still not found, then invoke findClass in order
+                // to find the class.
+                long t1 = System.nanoTime();
+                c = findClass(name);
+                // this is the defining class loader; record the stats
+                PerfCounter.getParentDelegationTime().addTime(t1 - t0);
+                PerfCounter.getFindClassTime().addElapsedTimeFrom(t1);
+                PerfCounter.getFindClasses().increment();
+            }
+        }
+        if (resolve) {
+            resolveClass(c);
+        }
+        return c;
+    }
+}
+```
 
-
+```java
+/**
+ * Finds the class with the specified <a href="#binary-name">binary name</a>.
+ * This method should be overridden by class loader implementations that
+ * follow the delegation model for loading classes, and will be invoked by
+ * the {@link #loadClass loadClass} method after checking the
+ * parent class loader for the requested class.
+ * @implSpec The default implementation throws {@code ClassNotFoundException}.
+ * @param  name
+ *         The <a href="#binary-name">binary name</a> of the class
+ * @return  The resulting {@code Class} object
+ * @throws  ClassNotFoundException
+ *          If the class could not be found
+ * @since  1.2
+ */
+protected Class<?> findClass(String name) throws ClassNotFoundException {
+    throw new ClassNotFoundException(name);
+}
+```
 
 ## 运行时内存结构
 
