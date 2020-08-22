@@ -64,9 +64,33 @@
 
 ![java1.8类文件格式第一版](/images/java1.8类文件格式第一版.png)
 
-## 内存加载过程
+## class文件内存加载过程
 
- 
+![class文件加载到内存](/images/class文件加载到内存.png)
+
+1. loading:class文件被加载到内存
+2. linking:
+   1. verification:校验加载进来的class是否符合标准(前面四个字节是“cafe babe”等)
+   2. preparation:class静态变量赋默认值(数值型默认值为0)
+   3. resolution:class文件的常量池用到的那些符号引用转换为直接的内存地址，可以直接访问到
+3. initializing:静态变量赋值为初始值
+
+### 类加载器
+
+> JVM中的所有的calss都是被类加载器加载到内存的（ClassLoader）
+
+![类加载器](/images/类加载器.png)
+
+### 类加载过程:双亲委派
+
+![类加载过程](/images/类加载过程.png)
+
+### 为什么要双亲委派
+
+1. 主要是为了安全:自己定义一个java.lang.String类
+2. 一个类只加载一次，减少资源浪费
+
+
 
 ## 运行时内存结构
 
