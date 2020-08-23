@@ -185,7 +185,7 @@ protected Class<?> findClass(String name) throws ClassNotFoundException {
 - 混合模式
   - 混合使用解释器 + 热点代码编译
   - 起始阶段采用解释执行
-  - 热点代码检测
+  - 热点代码检测:-XX:CompileThreshold=10000
     1. 多次被调用的方法（方法计数器：检测方法执行频率）
     2. 多次被调用的循环（循环计数器：检测循环执行效率）
     3. 进行编译
