@@ -82,22 +82,33 @@
      4. 虚拟机启动时，被执行的主类必须初始化
      5. 动态语言支持java.lang.invoke.MethodHandle解析的结果为REF_getstatic REF_putstatic REF_invokestatic的方法句柄时，该类必须初始化
 
-### 类加载器
+### loading
 
 > JVM中的所有的calss都是被类加载器加载到内存的（ClassLoader）
 
 ![类加载器](/images/类加载器.png)
 
-### 类加载过程:双亲委派
+#### 类加载过程:双亲委派
 
 ![类加载过程](/images/类加载过程.png)
 
-### 为什么要双亲委派
+#### 为什么要双亲委派
 
 1. 主要是为了安全:自己定义一个java.lang.String类
 2. 一个类只加载一次，减少资源浪费
 
-### 自定义类加载器
+#### 如何打破双亲委派
+
+1. 重写loadClass()方法
+
+#### 何时打破过双亲委派
+
+1. JDK1.2之前，自定义ClassLoader都必须重写loadClass()方法
+2. ThreadContextClassLoader可以实现基础类调用实现类代码，通过thread.setContextClassLoader指定
+3. 热启动，热部署
+   - osgi tomcat都有自己的模块指定ClassLoader（可以加载同一类库的不同版本）
+
+#### 自定义类加载器
 
 1. 继承ClassLoader
 2. 重写模板方法findClass，调用defineClass
@@ -105,7 +116,7 @@
    1. 防止反编译
    2. 防止篡改
 
-### ClassLoader源码解析
+#### ClassLoader源码解析
 
 ```java
 protected Class<?> loadClass(String name, boolean resolve)
@@ -164,7 +175,7 @@ protected Class<?> findClass(String name) throws ClassNotFoundException {
 }
 ```
 
-### 混合模式
+#### 混合加载模式
 
 > - -Xmixed 默认为混合模式
 >
@@ -190,9 +201,71 @@ protected Class<?> findClass(String name) throws ClassNotFoundException {
     2. 多次被调用的循环（循环计数器：检测循环执行效率）
     3. 进行编译
 
+### linking
+
+#### verification
+
+1. 验证文件是否符合JVM标准规范
+
+#### preparation
+
+1. 静态成员变量赋默认值
+
+#### resolution
+
+1. 将类、方法、属性等符号引用解析为直接引用
+2. 常量池中的各种符号引用解析为指针、偏移量等内存地址的直接引用
+
+### initializing
+
+1. 调用类的初始化代码<init>
+
 ## 运行时内存结构
 
+### 硬件层
 
+#### 存储器的层次结构
+
+![存储器的层次机构](/images/存储器的层次机构.png)
+
+CPU:内存 = 1:100；内存:磁盘 = 1:100000
+
+#### 多核CPU一致性的硬件层支持
+
+![多核CPU一致性的硬件层支持](/images/多核CPU一致性的硬件层支持.png)
+
+总线锁会锁住总线，使得其他CPU甚至不能访问内存中其他的地址，因而效率较低
+
+#### 缓存行
+
+> 读取缓存以cache line为基本单位，目前时64个字节
+
+![cache line 的概念，缓存行对齐 伪共享](/images/cache line 的概念，缓存行对齐 伪共享.png)
+
+#### 各种各样的缓存一致性协议
+
+> 现在CPU的数据一致性实现 = 缓存锁(MESI...) + 总线锁
+
+1. MSI
+
+2. MESI：（`Intel`的CPU所采用的缓存一致性协议）
+
+   - Modified，更改过就标记为这个状态
+   - Exclusive，独享就标记为这个状态
+   - Shared，我读的时候，别人也在读，就标记为这个状态
+   - Invalid，我读的时候，别的CPU已经改过了，就标记为这个状态
+
+   ![MESI缓存一致性协议](/images/MESI缓存一致性协议.png)
+
+   <font color="red">**有些无法被缓存的数据，或者跨越多个缓存行的数据依然必须使用总线锁**</font>
+
+3. MOSI
+
+4. Synapse
+
+5. Firefly
+
+6. Dragon
 
 ## JVM常用指令
 
