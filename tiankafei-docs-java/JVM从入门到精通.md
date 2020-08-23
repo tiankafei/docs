@@ -74,6 +74,13 @@
    2. preparation:class静态变量赋默认值(数值型默认值为0)
    3. resolution:class文件的常量池用到的那些符号引用转换为直接的内存地址，可以直接访问到
 3. initializing:静态变量赋值为初始值
+   - JVM规范并没有规定何时加载。Hotspot默认懒加载
+   - 但是严格规定了什么时候必须初始化
+     1. new getstatic putstatic invokestatic指定，访问final变量除外
+     2. java.lang.reflect对类进行反射调用时
+     3. 初始化子类的时候，父类首先初始化
+     4. 虚拟机启动时，被执行的主类必须初始化
+     5. 动态语言支持java.lang.invoke.MethodHandle解析的结果为REF_getstatic REF_putstatic REF_invokestatic的方法句柄时，该类必须初始化
 
 ### 类加载器
 
@@ -156,6 +163,32 @@ protected Class<?> findClass(String name) throws ClassNotFoundException {
     throw new ClassNotFoundException(name);
 }
 ```
+
+### 混合模式
+
+> - -Xmixed 默认为混合模式
+>
+>   开始解释执行，启动速度较快，对热点代码实行检测和编译
+>
+> - -Xint
+>
+>   使用解释模式，启动很快，执行稍慢
+>
+> - -Xcomp
+>
+>   使用纯编译模式，执行很快，启动很慢
+
+- 解释器
+  - bytecode intepreter
+- JIT
+  - just In-Time compiler
+- 混合模式
+  - 混合使用解释器 + 热点代码编译
+  - 起始阶段采用解释执行
+  - 热点代码检测
+    1. 多次被调用的方法（方法计数器：检测方法执行频率）
+    2. 多次被调用的循环（循环计数器：检测循环执行效率）
+    3. 进行编译
 
 ## 运行时内存结构
 
