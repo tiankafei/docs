@@ -259,13 +259,39 @@ CPU:内存 = 1:100；内存:磁盘 = 1:100000
 
    <font color="red">**有些无法被缓存的数据，或者跨越多个缓存行的数据依然必须使用总线锁**</font>
 
-3. MOSI
+3. MOSI 
 
 4. Synapse
 
 5. Firefly
 
 6. Dragon
+
+#### CPU合并写技术
+
+CPU为了提高指令执行效率，会再一条指令执行过程中（比如去内存读取数据慢了100倍），去同时执行另一条指令。（前提是，两条指定没有依赖关系）
+
+https://www.cnblogs.com/liushaodong/p/4777308.html
+
+写操作也可以进行合并
+
+##### 乱序执行的证明
+
+```java
+
+```
+
+##### 如何保证特定情况下的有序性
+
+有序性保障：CPU内存屏障（CPU的汇编指令）
+
+sfence:在sfence指令前的写操作当必须在sfence指令后的写操作前完成。
+
+ifence:在ifence指令前的读操作当必须在ifence指令后的读操作前完成。
+
+mfence:在mfence指令前的读写操作当必须在mfence指令后的读写操作前完成。
+
+lock指令，comxchg
 
 ## JVM常用指令
 
