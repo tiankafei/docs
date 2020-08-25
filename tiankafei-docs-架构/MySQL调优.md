@@ -1205,9 +1205,9 @@ mysql可以使用同一个索引即满足排序，又用于查找行，如果可
 
    ![使用索引排序09](/images/使用索引排序09.png)
 
-#### 推荐使用in
+#### union all,in,or都能够使用索引，但是推荐使用in
 
-> union all,in,or都能够使用索引，但是推荐使用in
+![union-in-or执行计划](/images/union-in-or执行计划.png)
 
 ```sql
 explain select * from actor where actor_id = 1 union all select * from actor where actor_id = 2;
