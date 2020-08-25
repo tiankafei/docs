@@ -1372,10 +1372,23 @@ explain select * from itdragon_order_list where order_level=3 order by input_dat
 
 #### 访问的数据太多
 
-> 查询性能低下的主要原因是访问的数据太多，某些查询不可避免的需要筛选大量的数据，我们可以通过减少访问数据量的方式进行优化
+> 查询性能低下的主要原因是访问的数据太多，某些查询不可避免的需要筛选大量的数据，我们可以通过减少访问数据量的方式进行优化（分页，一次只查询部分数据）
 
 1. 确认应用程序是否在检索大量超过需要的数据
+
 2. 确认mysql服务器层是否在分析大量超过需要的数据行
+
+   ![查询不必要的数据-sql优化01](/images/是否在检索大量超过需要的数据.png)
+
+**大数据量的索引排序问题：**
+
+1. 当查询的结果集数据量比较大的时候，可能不会使用索引来排序（也不是绝对）
+
+   ![索引出大量数据不能按照索引排序的问题](/images/索引出大量数据不能按照索引排序的问题.png)
+
+2. 当查询结果集数据量比较的时候，确使用了索引排序
+
+   ![索引出大量数据按照索引排序的问题](/images/索引出大量数据按照索引排序的问题.png)
 
 #### 是否向数据库请求了不需要的数据
 
@@ -1390,6 +1403,8 @@ explain select * from itdragon_order_list where order_level=3 order by input_dat
 > select * from actor inner join film_actor using(actor_id) inner join film using(film_id) where film.title='Academy Dinosaur';
 >
 > select actor.* from actor...;
+>
+> <font color="red">**多表关联时，建议给表增加表别名**</font>
 
 ##### 总是取出全部列
 
@@ -1403,7 +1418,9 @@ explain select * from itdragon_order_list where order_level=3 order by input_dat
 
 #### 查询缓存
 
-> 在解析一个查询语句之前，如果查询缓存是打开的，那么mysql会优先检查这个查询是否命中查询缓存中的数据，如果查询恰好命中了查询缓存，那么会在返回结果之前会检查用户权限，如果权限没有问题，那么mysql会跳过所有的阶段，就直接从缓存中拿到结果并返回给客户端
+> 在解析一个查询语句之前，如果查询缓存是打开的，那么mysql会优先检查这个查询是否命中查询缓存中的数据，如果查询恰好命中了查询缓存，那么会在返回结果之前会检查用户权限，如果权限没有问题，那么mysql会跳过所有的阶段，就直接从缓存中拿到结果并返回给客户端。
+>
+> <font color="red">**查询缓存在MySQL8中移除了，因为当数据频繁发生变化时，就需要频繁的往缓存中插入和更新；当内存满了之后，还需要内存淘汰策略（LRU，LFU）**</font>
 
 #### 查询优化处理
 
