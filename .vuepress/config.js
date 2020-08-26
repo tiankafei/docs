@@ -177,6 +177,7 @@ module.exports = {
           collapsable: false,
           children: [
             '词性语法学习',
+			'动词变形',
             '泛背单词第01天',
             '泛背单词第02天',
 			'泛背单词第03天',
