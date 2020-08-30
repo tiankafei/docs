@@ -375,9 +375,104 @@ lock指令，cmpxchg
 
    X86：lock cmpxchg xxxx
 
-### Object对象的内存布局
+### Java并发内存模型
+
+![Java并发内存模型](/images/Java并发内存模型.png)
+
+### Java8大原子操作（虚拟机规范，已弃用）
+
+> 最新的JSR-133已经放弃这种描述，但是JMM没有变化。《深入理解Java虚拟机》P364
+
+1. lock：主内存，标识变量为线程独占
+2. unlock：主内存，解锁线程独占变量
+3. read：主内存，读取内容到工作内存
+4. load：工作内存，read后的值放入线程本地变量副本
+5. use：工作内存，传值给执行引擎
+6. assign：工作内存，执行引擎结果赋值给线程本地变量
+7. store：工作内存，存值到主内存给write备用
+8. write：主内存，写变量值
+
+### hanppens-before原则
+
+1. 程序次序规则：同一个线程内，按照代码出现的顺序，前面的代码先行于后面的代码，准确的说是控制流顺序，因为要考虑到分支和循环结构。
+2. 管程锁定规则：一个unlock操作先行发生于后面（时间上）对同一个锁的lock操作。
+3. volatile变量规则：对一个volatile变量的写操作先行发生于后面（时间上）对这个变量的读操作。
+4. 线程启动规则：Thread的start()方法先行发生于这个线程的每一个操作。
+5. 线程终止规则：线程的所有操作都先行与此线程的终止检测。可以通过Thread.join()方法结束、Thread.isAlive()的返回值等手段检测线程的终止。
+6. 线程中断规则：对线程interrupt()方法的调用先行发生于被中断线程的代码检测到中断事件的发生，可以通过Thread.interrupt()方法检测线程是否中断。
+7. 对象终结规则：一个对象的初始化完成先行于发生它的finalize()方法的开始。
+8. 传递性：如果操作A先行于操作B，操作B先行于操作C，那么操作A先行于操作C。
+
+### as if serial
+
+不管如果重排序，单线程执行结果不会改变。
+
+## Object对象的内存布局
+
+#### 1. 请解释以下对象的创建过程？
+
+##### 1. class加载到内存的过程
+
+1. class loading
+2. class linking（verification,preparation,resolution)
+3. class initializing
+
+##### 2. new对象的过程
+
+1. 申请对象内存
+2. 成员变量赋默认值
+3. 调用构造方法<init>
+   1. 成员变量顺序赋初始值
+   2. 执行构造方法语句(先调用super)
+
+#### 2. 对象在内存中的存储布局？
+
+##### 观察虚拟机的配置
+
+> 对象的大小具体跟虚拟机的实现以及虚拟机的设置都很有关系。
+>
+> ![观察虚拟机的配置](/images/观察虚拟机的配置.png)
+
+```java
+java -XX:+PrintCommandLineFlags -version
+
+C:\Users\tiankafei>java -XX:+PrintCommandLineFlags -version
+-XX:InitialHeapSize=16777216 -XX:MaxHeapSize=268435456 -XX:+PrintCommandLineFlags -XX:-UseLargePagesIndividualAllocation
+java version "1.8.0_261"
+Java(TM) SE Runtime Environment (build 1.8.0_261-b12)
+Java HotSpot(TM) Client VM (build 25.261-b12, mixed mode)
+```
+
+##### 普通对象
+
+1. 对象头：mardword 8
+2. ClassPointer指针：-XX:+UseCompressedClassPointers为4字节 不开启为8字节
+3. 实例数据
+   - 引用类型：-XX:+UseCompressedOops为4字节 不开启为8字节
+   - Oops：Ordinary Object Pointers
+4. Padding对齐，8的倍数
+
+##### 数组对象
+
+1. 对象头：mardwork 8
+2. ClassPointer指针同上
+3. 数组长度：4个字节
+4. 数组数据
+5. Padding对齐，8的倍数
+
+#### 3. 对象头具体包括什么？
 
 
+
+#### 4. 对象怎么定位？
+
+https://blog.csdn.net/clover_lily/article/details/80095580
+
+
+
+#### 5. 对象怎么分配？
+
+#### 6. Object o = new Object() 在内存中占用多少字节？
 
 ## JVM常用指令
 
