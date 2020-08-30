@@ -275,13 +275,13 @@ https://www.cnblogs.com/liushaodong/p/4777308.html
 
 写操作也可以进行合并
 
-##### 乱序执行的证明
+#### 乱序执行的证明
 
 ```java
 
 ```
 
-##### 如何保证特定情况下的有序性
+#### 如何保证特定情况下的有序性（x86）
 
 有序性保障：CPU内存屏障（CPU的汇编指令）
 
@@ -291,7 +291,93 @@ ifence:在ifence指令前的读操作当必须在ifence指令后的读操作前�
 
 mfence:在mfence指令前的读写操作当必须在mfence指令后的读写操作前完成。
 
-lock指令，comxchg
+lock指令，cmpxchg 
+
+### JVM层
+
+#### 如何保证特定情况下的有序性
+
+1. LoadLoad屏障
+
+   对于这样的语句：Load1;LoadLoad;Load2
+
+   在Load2及后续读取操作要读取的数据访问前，保证Load1要读取的数据读取完毕。
+
+2. StoreStore屏障
+
+   对于这样的语句：Store1;StoreStore;Store2
+
+   在Store2及后续写入操作执行前，保证Store1的写入操作对其它处理器可见。
+
+3. LoadStore屏障
+
+   对于这样的语句：Load1;LoadStore;Store2
+
+   在Store2及后续写入操作被刷出前，保证Load1要读取的数据被读取完毕。
+
+4. StoreLoad屏障
+
+   对于这样的语句：Store1;StoreLoad;Load2
+
+   在Load2及后续所有读取操作执行前，保证Store1的写入对其它处理器可见。
+
+##### volatile指令的实现细节
+
+1. 字节码层面 (ACC_VOLATILE访问修饰符)
+
+   只是在属性的访问修饰符后面加了一个`[volatile]`
+
+2. JVM层面
+
+   > StoreStoreBarrier
+>
+   > volatile 写操作
+>
+   > StoreLoadBarrier
+
+   > LoadLoadBarrier
+>
+   > volatile 读操作
+>
+   > LoadStoreBarrier
+>
+   > 
+
+3. 操作系统及硬件层面
+
+   使用`hsdis`观察汇编码，lock指令 xxx 执行 xxx 指令的时候保证对内存区域加锁
+
+   hsdis -> HotSpot Dis Assembler
+
+   https://blog.csdn.net/qq_26222859/article/details/52235930
+
+   windows 使用`lock`指令实现
+
+##### synchronized指令的实现细节
+
+1. 字节码层面 (ACC_VOLATILE访问修饰符)
+
+   如果在方法上使用synchronized，则会在方面的访问修饰符后面加一个`[synchronized]`
+
+   如果在方法块上使用synchronized，则会在字节码层面增加相关指令：monitorenter,monitorexit
+
+   ![synchronized字节码编译效果](/images/synchronized字节码编译效果.png)
+
+   为什么会有两条`monitorexit`，包含正常退出和异常退出。
+
+2. JVM层面
+
+   C\C++调用了操作系统提供的同步机制
+
+3. 操作系统及硬件层面
+
+   https://blog.csdn.net/21aspnet/article/details/88571740
+
+   X86：lock cmpxchg xxxx
+
+### Object对象的内存布局
+
+
 
 ## JVM常用指令
 
