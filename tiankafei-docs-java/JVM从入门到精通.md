@@ -462,17 +462,169 @@ Java HotSpot(TM) Client VM (build 25.261-b12, mixed mode)
 
 #### 3. 对象头具体包括什么？
 
+hotspot源码的实现
 
+![java对象头01](/images/java对象头01.png)
+
+表格展示
+
+![java对象头02](/images/java对象头02.png)
+
+<font color="red">**当一个对象计算过identityHashCode之后，不能进入偏向锁状态**</font>
+
+1. https://cloud.tencent.com/developer/article/1480590
+2. https://cloud.tencent.com/developer/article/1484167
+3. https://cloud.tencent.com/developer/article/1485795
+4. https://cloud.tencent.com/developer/article/1482500
 
 #### 4. 对象怎么定位？
 
 https://blog.csdn.net/clover_lily/article/details/80095580
 
-
+1. 句柄池
+2. 直接指针
 
 #### 5. 对象怎么分配？
 
+![对象分配过程](/images/对象分配过程.png)
+
 #### 6. Object o = new Object() 在内存中占用多少字节？
+
+##### 自定义Agnet（1.8）
+
+1. 创建文件TiankafeiAgent
+
+   ```java
+   package org.tiankafei.agent;
+   import java.lang.instrument.Instrumentation;
+   /**
+    * @author tiankafei
+    * @since 1.0
+    **/
+   public class TiankafeiAgent {
+       private static Instrumentation inst;
+       public static void premain(String agentArgs, Instrumentation _inst) {
+           inst = _inst;
+       }
+       public static long sizeOf(Object o) {
+           return inst.getObjectSize(o);
+       }
+   }
+   ```
+
+2. src目录下创建META-INF/MANIFEST.MF
+
+   ```txt
+   Manifest-Version: 1.0
+   Created-By: tiankafei
+   Premain-Class: org.tiankafei.agent.TiankafeiAgent
+   
+   ```
+
+   注意Premain-Class这行必须是新的一行（回车 + 换行），确认idea不能有任何错误提示
+
+3. 打包jar文件
+
+4. 在需要使用该Agent Jar的项目中引入该Jar包
+
+   project structure -> project settings -> library 添加该jar包
+
+5. 运行时需要该Agent Jar的类，加入参数（VM options）：
+
+   ```java
+   -javaagent:agent的jar包绝对路径
+   ```
+
+6. 如何使用该类
+
+   ```java
+   package org.tiankafei.base;
+   import org.tiankafei.agent.TiankafeiAgent;
+   /**
+    * @author tiankafei
+    * @since 1.0
+    **/
+   public class TestAgent {
+       public static void main(String[] args) {
+           System.out.println(TiankafeiAgent.sizeOf(new Object()));
+           System.out.println(TiankafeiAgent.sizeOf(new int[] {}));
+           System.out.println(TiankafeiAgent.sizeOf(new P()));
+       }
+       private static class P {
+           //8 _markword
+           //4 _oop指针
+           int id;         //4
+           String name;    //4
+           int age;        //4
+           byte b1;        //1
+           byte b2;        //1
+           Object o;       //4
+           byte b3;        //1
+       }
+   }
+   ```
+
+   输出结果：
+
+   ```txt
+   16
+   16
+   32
+   ```
+
+##### 分析对象大小-16
+
+```java
+-XX:+UseCompressedClassPointers
+```
+
+1. 对象头`markword`占8个字节
+2. class指针`class pointer`占8个字节，当开启`-XX:+UseCompressedClassPointers`时，class指针会被压缩成4个字节
+3. padding对齐，占了4个字节（对齐不一定时4个字节，）
+
+##### 分析数组大小-16
+
+```java
+-XX:+UseCompressedClassPointers
+```
+
+1. 对象头`markword`占8个字节
+2. class指针`class pointer`占8个字节，当开启`-XX:+UseCompressedClassPointers`时，class指针会被压缩成4个字节
+3. 数组长度4个字节
+4. padding对齐，0个字节（上面的大小已经时对齐的了，故padding对齐为0个字节）
+
+##### 分析数组大小-24（关闭UseCompressedClassPointers）
+
+```java
+-XX:-UseCompressedClassPointers
+```
+
+1. 对象头`markword`占8个字节
+2. class指针`class pointer`占8个字节
+3. 数组长度4个字节
+4. padding对齐，4个字节
+
+##### 分析对象大小（带属性的对象）
+
+```java
+private static class P {
+    			   //8 _markword
+    			   //4 _oop指针
+    int id;         //4
+    String name;    //4（引用类型默认占用8个字节，当开启-XX:+UseCompressedOops时会被压缩成4个字节）
+    int age;        //4
+    byte b1;        //1
+    byte b2;        //1
+    Object o;       //4
+    byte b3;        //1
+}
+```
+
+> ```java
+> Oops = ordinary object pointers（普通对象指针）
+> ```
+
+1. 引用类型占用大小：默认为8个字节，当开启`-XX:+UseCompressedOops`时会被压缩成4个字节。
 
 ## JVM常用指令
 
