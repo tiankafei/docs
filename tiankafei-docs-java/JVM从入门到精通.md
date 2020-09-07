@@ -628,9 +628,138 @@ private static class P {
 
 ## Java运行时数据区
 
+![Java运行时数据区](/images/Java运行时数据区.png)
 
+### 1. Program Counter：PC程序计数器
+
+存放下一条指令位置的内存区域
+
+虚拟机的运行，类似于这样的循环：
+
+while( not end ){
+
+  取PC中的位置，找到对应位置的指令；
+
+  执行该指令；
+
+  PC++；
+
+}
+
+### 2. JVM Stack
+
+JVM虚拟机管理的栈
+
+自己的方法对应的栈帧，每个线程对应一个栈，每个方法对应一个栈帧。
+
+#### 栈帧Frame包含的内容
+
+1. Local Variables：本地变量（局部变量）
+
+2. Operand Stacks：操作数栈
+
+   对于long的处理（store and load），多数虚拟机的实现都是原子的，JLS17.7，没有必要加volatile
+
+3. Dynamic Linking：动态链接
+
+   https://blog.csdn.net/qq_41813060/article/details/88379473
+
+   jvms 2.6.3
+
+   运行时常量池里面的符号链接。如果没有解析，就动态解析；如果已经解析了，就直接使用。
+
+4. Return Address：a()->b()，方法a调用了方法b()，b方法的返回值放在什么地方。
+
+### 3. Native Method Stacks
+
+本地方法栈，一般使用C\C++写的，或者通过JNI调用Java自己的方法，一般涉及不到，也没法调优，没有办法去管理它。
+
+### 4. Direct Memory
+
+直接内存：NIO。Java的内存一般是由JVM管理的，但是为了增加性能，在JDK1.4之后，增加了NIO，可以直接访问操作系统的内存的，这部分内存归操作系统进行管理。Zero Copy！！！
+
+### 5. Method Area：逻辑的概念
+
+#### Perm Space（<1.8）
+
+字符串常量位于Perm Space
+
+FGC不会清理
+
+#### Meta Space（>1.8）
+
+字符串常量位于堆
+
+会触发FGC清理
+
+### 6. Run-Time Constant Pool
+
+class字节码中的常量池存放在这里
+
+### 7. Heap
+
+堆内存
+
+### 8.总结：线程共享区域
+
+![线程共享数据区](/images/线程共享数据区.png)
 
 ## JVM常用指令集
+
+> 1. 基于栈的指令集
+> 2. 基于寄存器的指令集（hotspot的local variable table类似于寄存器）
+
+### 1. 示例性demo
+
+```java
+public class TestIPulsPlus {
+    public static void main(String[] args) {
+        int i = 8;
+        i = i++;
+//        i = ++i;
+        System.out.println(i);
+    }
+}
+输出结果：
+8
+字节码如下：
+ 0 bipush 8					// 8压栈
+ 2 istore_1					// 把栈顶上的值出栈，放在局部变量表中下标为1的位置
+ 3 iload_1					// 把局部变量表下标为1位置上的值压栈
+ 4 iinc 1 by 1				// 把局部变量表下标为1上的数+1
+ 7 istore_1					// 把栈顶上的值出栈，放在局部变量表中下标为1的位置
+ 8 getstatic #2 <java/lang/System.out>
+11 iload_1
+12 invokevirtual #3 <java/io/PrintStream.println>
+15 return
+```
+
+```java
+public class TestIPulsPlus {
+    public static void main(String[] args) {
+        int i = 8;
+//        i = i++;
+        i = ++i;
+        System.out.println(i);
+    }
+}
+输出结果：
+9
+字节码如下：
+ 0 bipush 8					// 8压栈
+ 2 istore_1					// 把栈顶上的值出栈，放在局部变量表中下标为1的位置
+ 3 iinc 1 by 1				// 把局部变量表下标为1上的数+1
+ 6 iload_1					// 把局部变量表下标为1位置上的值压栈
+ 7 istore_1					// 把栈顶上的值出栈，放在局部变量表中下标为1的位置
+ 8 getstatic #2 <java/lang/System.out>
+11 iload_1
+12 invokevirtual #3 <java/io/PrintStream.println>
+15 return
+```
+
+### 2. 
+
+
 
 
 
