@@ -680,17 +680,21 @@ JVM虚拟机管理的栈
 
 ### 5. Method Area：逻辑的概念
 
+> 思考：如何证明1.7字符串常量位于Perm，而1.8位于Heap?
+>
+> 提示：结合GC，一直创建字符常量，观察堆和MetaSpace的情况。
+
 #### Perm Space（<1.8）
 
-字符串常量位于Perm Space
-
-FGC不会清理
+1. 字符串常量位于Perm Space
+2. FGC不会清理
+3. 大小启动的时候指定，不能变
 
 #### Meta Space（>1.8）
 
-字符串常量位于堆
-
-会触发FGC清理
+1. 字符串常量位于堆
+2. 会触发FGC清理
+3. 不设定的话，最大就是物理内存
 
 ### 6. Run-Time Constant Pool
 
