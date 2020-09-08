@@ -782,15 +782,209 @@ public class TestIPulsPlus {
 
 ![递归调用的方法栈帧](/images/递归调用的方法栈帧.png)
 
+## JVM调优理论
 
+### 1. 垃圾
 
-## JVM调优
+> 没有引用指向的任何对象就叫做垃圾
 
+**Java VS C++：**
 
+- Java
+  1. GC处理垃圾
+  2. 开发效率高，执行效率低
+- C++
+  1. 手工处理垃圾
+  2. 忘记回收
+     - 内存泄漏
+  3. 回收多次
+     - 非法访问
+  4. 开发效率低，执行效率高
 
-## 垃圾回收算法
+### 2. 垃圾定位算法
 
+#### 1. 引用计数：reference count
 
+> 没有引用指向它的时候，就是垃圾；不能解决循环引用的问题
+
+#### <font color="red">2. 根可达算法：root searching</font>
+
+> 从根对象开始寻找，不能被引用到的对象就是垃圾
+
+![根可达算法](/images/根可达算法.png)
+
+根对象种类：
+
+1. main方法开始执行时的线程栈的变量
+2. 静态变量
+3. 常量池引用的对象
+4. JNI指针，调用C/C++方法引用的对象
+
+换句话说：
+
+1. jvm stack
+2. native method
+3. run-time constant pool
+4. static references in method area
+5. Clazz
+
+### <font color="red">3. 垃圾回收算法</font>
+
+#### 1. Mark-Sweep（标记清除）
+
+![垃圾定位算法-标记清除算法](/images/垃圾定位算法-标记清除算法.png)
+
+优点：
+
+- 直接把标记为垃圾的对象清空即可，算法比较简单
+- 当存活对象比较多的情况下，效率比较高
+
+缺点：
+
+- 需要经过两次扫描（第一遍标记，第二遍清除），执行效率偏低
+- 容易产生碎片
+
+#### 2. Copying（拷贝）
+
+![垃圾定位算法-拷贝清除算法](/images/垃圾定位算法-拷贝清除算法.png)
+
+优点：
+
+- 适用于存活对象较少的情况
+- 只扫描一次，效率提高
+- 没有碎片
+
+缺点：
+
+- 空间浪费
+- 移动复制对象
+- 需要调整对象引用
+
+#### 3. Mark-Compact（标记压缩）
+
+![垃圾定位算法-标记压缩算法](/images/垃圾定位算法-标记压缩算法.png)
+
+优点：
+
+- 不会产生碎片，
+- 方便对象分配
+- 不会产生内存减半
+
+缺点：
+
+- 扫描两次
+- 需要移动对象
+- 执行效率偏低
+
+### 4. JVM内存分代模型（用于分代垃圾回收算法）
+
+![堆内存逻辑分区](/images/堆内存逻辑分区.png)
+
+#### 1. 部分垃圾回收器使用的模型
+
+1. 不分代模型
+   - Epsilon（用于做调试用的，起到一个占位符的作用）
+   - ZGC
+   - Shenandoah
+2. 逻辑分代，物理不分代
+   - G1
+3. 逻辑分代，物理也分代
+   - 其他
+
+#### 2. 新生代 + 老年代 + 永久代（1.7）Perm Generation/元数据区（1.8）Metaspace
+
+1. 永久代：元数据-Class
+2. 永久代必须制定大小限制，元数据可以设置，也可以不设置，无上限（受限于物理内存）
+3. 字符串常量1.7 永久代，1.8在堆
+4. Method Area逻辑概念：永久代、元数据
+
+#### 3. 新生代=Eden + 2个suvivor区
+
+1. YGC回收之后，大多数的对象会被回收，或者的进入s0
+2. 再次YGC，活着的对象 Eden + s0 -> s1
+3. 再次YGC，Eden + s1 -> s0
+4. 年龄足够 -> 老年代（15 CMS 6）
+5. s区装不下 -> 老年代
+
+#### 4. 老年代
+
+1. 顽固分子
+2. 老年代满了 FGC（Full GC）
+
+#### 5. GC Teunring（Generation）
+
+![GC概念](/images/GC概念.png)
+
+1. 尽量减少FGC
+2. MinorGC = YGC：在年轻代空间耗尽时触发：-Xmn 
+3. MajorGC = FGC：在老年代无法继续分配空间时触发，新生代老年代同时进行回收：-Xms  -Xmx
+
+#### 6. 一个对象从出生到消亡的历程
+
+![一个对象从出生到消亡的历程](/images/一个对象从出生到消亡的历程.png)
+
+- 栈上分配
+  - 线程私有小对象
+  - 无逃逸（就在这段代码中使用，出了这段代码，就没有人认识它了）
+  - 支持标量替换（用普通的属性代替整个对象）
+  - 无需调整
+- 线程本地分配TLAB（Thread Local Allocation Buffer）
+  - 占用eden，默认1%
+  - 多线程的时候不用竞争eden就可以申请空间，提高效率
+  - 小对象
+  - 无需调整
+- 老年代
+  - 大对象
+- eden
+
+```java
+//-XX:-DoEscapeAnalysis -XX:-EliminateAllocations -XX:-UseTLAB -Xlog:c5_gc*
+// 逃逸分析 标量替换 线程专有对象分配
+public class TestTLAB {
+    //User u;
+    class User {
+        int id;
+        String name;
+        public User(int id, String name) {
+            this.id = id;
+            this.name = name;
+        }
+    }
+    void alloc(int i) {
+        new User(i, "name " + i);
+    }
+    public static void main(String[] args) {
+        TestTLAB t = new TestTLAB();
+        long start = System.currentTimeMillis();
+        for(int i=0; i<1000_0000; i++) {
+            t.alloc(i);
+        }
+        long end = System.currentTimeMillis();
+        System.out.println(end - start);
+        //for(;;);
+    }
+}
+
+```
+
+#### 7. 对象分配过程图
+
+![对象分配过程详解](/images/对象分配过程详解.png)
+
+#### 8. 常用JVM参数
+
+- -XX:-DoEscapeAnalysis：逃逸分析
+- -XX:-EliminateAllocations：标量替换
+- -XX:-UseTLAB：线程专有对象分配
+- -XX:MaxTenuringThreshold：s0-s1之间的复制年龄（YGC次数）超过限制，进入old区的参数；
+  - 对象头的分代年龄是4bit，最大值是15
+  - 如果不指定，Parallel Scavenge 默认值15
+  - 如果不指定，CMS 默认6
+  - 如果不指定，G1 默认15
+  - 动态年龄：s0比s1超过50%时，把年龄最大的放入old区
+- -Xmn：年轻代内存大小设置
+- -Xms：老年代内存的最小值
+- -Xmx：老年代内存的最大值
 
 ## JVM调优实战
 
