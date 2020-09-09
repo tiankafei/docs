@@ -876,7 +876,9 @@ public class TestIPulsPlus {
 - 需要移动对象
 - 执行效率偏低
 
-### 4. JVM内存分代模型（用于分代垃圾回收算法）
+### 4. JVM内存分代模型
+
+> 用于分代垃圾回收算法
 
 ![堆内存逻辑分区](/images/堆内存逻辑分区.png)
 
@@ -891,14 +893,16 @@ public class TestIPulsPlus {
 3. 逻辑分代，物理也分代
    - 其他
 
-#### 2. 新生代 + 老年代 + 永久代（1.7）Perm Generation/元数据区（1.8）Metaspace
+#### 2. 新生代 + 老年代 + 
+
+> 永久代（1.7）Perm Generation/元数据区（1.8）Metaspace
 
 1. 永久代：元数据-Class
 2. 永久代必须制定大小限制，元数据可以设置，也可以不设置，无上限（受限于物理内存）
 3. 字符串常量1.7 永久代，1.8在堆
 4. Method Area逻辑概念：永久代、元数据
 
-#### 3. 新生代=Eden + 2个suvivor区
+#### 3. 新生代 = Eden + 2个suvivor区
 
 1. YGC回收之后，大多数的对象会被回收，或者的进入s0
 2. 再次YGC，活着的对象 Eden + s0 -> s1
@@ -1143,7 +1147,137 @@ CMS既然是MarkSweep，就一定会有碎片化的问题，碎片到达一定�
 
 ### 13. 1.8默认的垃圾回收：PS + ParallelOld
 
+## 常见垃圾回收器组合参数设定
+
+### 1. Serial New + Serial Old
+
+```java
+-XX:+UseSerialGC = Serial New (DefNew) + Serial Old
+```
+
+小型程序。默认情况下不会是这种选项，HotSpot会根据计算及配置和JDK版本自动选择收集器
+
+### 2. ParNew + SerialOld
+
+```java
+-XX:+UseParNewGC = ParNew + SerialOld
+```
+
+这个组合已经很少用（在某些版本中已经废弃）
+
+https://stackoverflow.com/questions/34962257/why-remove-support-for-parnewserialold-anddefnewcms-in-the-future
+
+### 3. ParNew + CMS + Serial Old
+
+```java
+-XX:+UseConc(urrent)MarkSweepGC = ParNew + CMS + Serial Old
+```
+
+### 4. Parallel Scavenge + Parallel Old
+
+```java
+-XX:+UseParallelGC = Parallel Scavenge + Parallel Old (1.8默认) 【PS + SerialOld】
+```
+
+### 5. Parallel Scavenge + Parallel Old
+
+```java
+-XX:+UseParallelOldGC = Parallel Scavenge + Parallel Old
+```
+
+### 6. G1
+
+```java
+-XX:+UseG1GC = G1
+```
+
+### 7. Linux中没找到默认GC的查看方法，而windows中会打印UseParallelGC 
+
+* java +XX:+PrintCommandLineFlags -version
+* 通过GC的日志来分辨
+
+### 8. Linux下1.8版本默认的垃圾回收器到底是什么？
+
+1. 1.8.0_181 默认（看不出来）Copy MarkCompact
+2. 1.8.0_222 默认 PS + PO
+
 ## JVM调优实战
+
+> 了解JVM常用命令行参数；JVM的命令行参数参考：https://docs.oracle.com/javase/8/docs/technotes/tools/unix/java.html
+
+### 1. HotSpot参数分类
+
+- 标准： - 开头，所有的HotSpot都支持
+- 非标准：-X 开头，特定版本HotSpot支持特定命令
+- 不稳定：-XX 开头，下个版本可能取消
+- java -version；java -X
+
+### 2. demo示例
+
+```java
+import java.util.List;
+import java.util.LinkedList;
+
+public class HelloGC {
+  public static void main(String[] args) {
+    System.out.println("HelloGC!");
+    List list = new LinkedList();
+    for(;;) {
+      byte[] b = new byte[1024*1024];
+      list.add(b);
+    }
+  }
+}
+```
+
+1. 区分概念：内存泄漏memory leak，内存溢出out of memory
+2. java -XX:+PrintCommandLineFlags HelloGC
+3. java -Xmn10M -Xms40M -Xmx60M -XX:+PrintCommandLineFlags -XX:+PrintGC  HelloGC
+   PrintGCDetails PrintGCTimeStamps PrintGCCauses
+4. java -XX:+UseConcMarkSweepGC -XX:+PrintCommandLineFlags HelloGC
+5. java -XX:+PrintFlagsInitial 默认参数值
+6. java -XX:+PrintFlagsFinal 最终参数值
+7. java -XX:+PrintFlagsFinal | grep xxx 找到对应的参数
+8. java -XX:+PrintFlagsFinal -version | grep GC
+
+### 3. PS GC日志详解
+
+> 每种垃圾回收器的日志格式是不同的！
+
+PS日志格式
+
+![GC日志详解](/images/GC日志详解.png)
+
+heap dump部分：
+
+```java
+eden space 5632K, 94% used [0x00000000ff980000,0x00000000ffeb3e28,0x00000000fff00000)
+                            后面的内存地址指的是，起始地址，使用空间结束地址，整体空间结束地址
+```
+
+![GCHeapDump](/images/GCHeapDump.png)
+
+total = eden + 1个survivor
+
+### 4. 调优前的基础概念
+
+1. 吞吐量：用户代码时间 /（用户代码执行时间 + 垃圾回收时间）
+2. 响应时间：STW越短，响应时间越好
+
+> 所谓调优，首先确定，追求啥？吞吐量优先，还是响应时间优先？还是在满足一定的响应时间的情况下，要求达到多大的吞吐量...
+
+问题：
+
+1. 科学计算，吞吐量。数据挖掘，thrput。吞吐量优先的一般：（PS + PO）
+2. 响应时间：网站 GUI API （1.8 G1）
+
+### 5. 什么是调优
+
+1. 根据需求进行JVM规划和预调优
+2. 优化运行JVM运行环境（慢，卡顿）
+3. 解决JVM运行过程中出现的各种问题(OOM)
+
+### 6. 调优，从规划开始
 
 
 
