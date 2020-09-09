@@ -971,20 +971,177 @@ public class TestTLAB {
 
 ![对象分配过程详解](/images/对象分配过程详解.png)
 
+- 动态年龄：
+  - https://www.jianshu.com/p/989d3b06a49d
+- 分配担保：
+  - YGC期间 survivor区空间不够了 空间担保直接进入老年代
+  - https://cloud.tencent.com/developer/article/1082730
+
 #### 8. 常用JVM参数
 
 - -XX:-DoEscapeAnalysis：逃逸分析
+
 - -XX:-EliminateAllocations：标量替换
+
 - -XX:-UseTLAB：线程专有对象分配
+
 - -XX:MaxTenuringThreshold：s0-s1之间的复制年龄（YGC次数）超过限制，进入old区的参数；
+
   - 对象头的分代年龄是4bit，最大值是15
+
   - 如果不指定，Parallel Scavenge 默认值15
+
   - 如果不指定，CMS 默认6
+
   - 如果不指定，G1 默认15
-  - 动态年龄：s0比s1超过50%时，把年龄最大的放入old区
+
+  - 动态年龄：s0比s1超过50%时，把年龄最大的放入old区。（年龄1的占用了33%，年龄2的占用了33%，累加和超过默认的TargetSurvivorRatio（50%），年龄2和年龄3的对象都要晋升到老年代）
+
+    https://www.jianshu.com/p/989d3b06a49d
+
 - -Xmn：年轻代内存大小设置
+
 - -Xms：老年代内存的最小值
+
 - -Xmx：老年代内存的最大值
+
+> - 命令行输入java：以横杠开头的命令是标准参数，所有java版本都支持
+> - 命令行输入java -X：非标准参数
+> - 命令行输入java -XX：不稳定参数，有些版本支持这个参数，有些版本支持那个参数，有些版本根本就不支持
+> - 命令行输入java -XX:+PrintFlagsFinal -version，得到所有的参数列表，在linux上可以在后面追加 | grep xxx进行搜索
+
+## <font color="red">常见垃圾回收器</font>
+
+![常用垃圾回收器](/images/常用垃圾回收器.png)
+
+> JDK诞生Serial追随；为了在多线程的情况下提高效率，诞生了Parallel Scavenge（PS）；为了配合CMS，诞生了ParNew（PN）；CMS是1.4版本后期引入，CMS是里程碑式的GC，它开启了并发回收的过程，但是CMS毛病较多，因此目前任何一个JDK版本默认是CMS。并发垃圾回收是因为无法忍受STW（stop the work）。
+
+> 常见的垃圾回收器的组合：
+>
+> 1. Serial + Serial Old
+> 2. Parallel Scavenge + Parallel Old
+> 3. ParNew  + CMS
+
+### 1. Serial 年轻代 
+
+> 串行回收（单进程 单线程）
+
+![垃圾回收器-Serial](/images/垃圾回收器-Serial.png)
+
+### 2. Serial Old 老年代 
+
+> 串行回收（单进程 单线程）
+
+![垃圾回收器-Serial Old](/images/垃圾回收器-Serial Old.png)
+
+### 3. Parallel Scavenge 年轻代 
+
+> 并行回收（多线程）
+
+![垃圾回收器-Parallel Scavenge](/images/垃圾回收器-Parallel Scavenge.png)
+
+### 4. Parallel Old 老年代 
+
+> 并行回收（多线程）
+
+![垃圾回收器-Parallel Old](/images/垃圾回收器-Parallel Old.png)
+
+### 5. ParNew 年轻代 
+
+> 配合CMS的并行回收（Parallel Scavenge的变种，为了和CMS配合）
+
+![垃圾回收器-ParNew](/images/垃圾回收器-ParNew.png)
+
+Parallel Scavenge 和 ParNew 的区别：
+
+- ParNew 响应时间有限，配合CMS
+- Parallel Scavenge 吞吐量优先
+
+https://docs.oracle.com/en/java/javase/13/gctuning/ergonomics.html#GUID-3D0BB91E-9BFF-4EBB-B523-14493A860E73
+
+### 6. CMS 老年代
+
+> ConcurrentMarkSweep 老年代 并发的， 垃圾回收和应用程序同时运行，降低STW的时间(200ms)
+> CMS问题比较多，所以现在没有一个版本默认是CMS，只能手工指定。
+
+![垃圾回收器-CMS](/images/垃圾回收器-CMS.png)
+
+#### 1. 使用的算法
+
+1. 三色标记（白	灰	黑）
+
+2. Incremental Update
+
+   当一个白色对象被一个黑色对象引用，将黑色对象重新标记为灰色，让collector重新扫描
+
+#### 2. 初始标记：STW
+
+单线程：找到根对象进行标记
+
+#### 3. 并发标记
+
+多线程：和应用程序同时运行，进行标记（80%GC的时间都是浪费在这里），一边标记一边会产生新的垃圾
+
+#### 4. 重新标记：STW
+
+多线程：在并发标记过程中产生的新的垃圾进行重新标记
+
+#### 5. 并发清理
+
+多线程：根据标记的指针进行并行清理，在清理的过程中依然会产生新的垃圾（浮动垃圾，等待下一次GC时进行回收）
+
+#### 6. 存在的问题
+
+##### 1. Memory Fragmentation（碎片化）
+
+1. -XX:+UseCMSCompactAtFullCollection
+2. -XX:CMSFullGCsBeforeCompaction 默认为0 指的是经过多少次FGC才进行压缩
+3. -XX:CMSInitiatingOccupancyFraction 68%-> 90%（可以降低这个值，让CMS老年代有足够的空间）
+
+CMS既然是MarkSweep，就一定会有碎片化的问题，碎片到达一定程度，CMS的老年代分配对象分配不下的时候，使用SerialOld 进行老年代回收。
+
+##### 2. Floating Garbage（浮动垃圾）
+
+#### 7. CMS日志分析
+
+
+
+
+
+
+
+
+
+### 7. G1（10ms）
+
+#### 1. 使用的算法
+
+1. 三色标记（白	灰	黑）
+2. STAB
+   - snapshot at the beginning
+   - 在起始的时候做一个快照
+   - 当B->D消失时，要把这个引用推到GC的堆栈，保证D还能被GC扫描到
+
+### 8. ZGC (1ms) PK C++
+算法：ColoredPointers + LoadBarrier
+
+### 9. Shenandoah
+算法：ColoredPointers + WriteBarrier
+
+### 10. Eplison
+
+### 11. PS 和 PN区别的延伸阅读：
+▪[https://docs.oracle.com/en/java/javase/13/gctuning/ergonomics.html#GUID-3D0BB91E-9BFF-4EBB-B523-14493A860E73](https://docs.oracle.com/en/java/javase/13/gctuning/ergonomics.html)
+
+### 12. 垃圾收集器跟内存大小的关系
+
+1. Serial 几十兆
+2. PS 上百兆 - 几个G
+3. CMS - 20G
+4. G1 - 上百G
+5. ZGC - 4T - 16T（JDK13）
+
+### 13. 1.8默认的垃圾回收：PS + ParallelOld
 
 ## JVM调优实战
 
