@@ -1147,6 +1147,10 @@ CMS既然是MarkSweep，就一定会有碎片化的问题，碎片到达一定�
 
 ### 13. 1.8默认的垃圾回收：PS + ParallelOld
 
+## 常见的垃圾回收算法详解
+
+
+
 ## 常见垃圾回收器组合参数设定
 
 ### 1. Serial New + Serial Old
@@ -1296,69 +1300,9 @@ total = eden + 1个survivor
    - 或者每天产生一个日志文件
 7. 观察日志情况
 
-### 7. 调优案例
 
-#### 1. 案例1：每日百万订单
 
-<font color="red">**垂直电商，最高每日百万订单，处理订单系统需要什么样的服务器配置？**</font>
-
-> 每天百万订单，预计每天晚上5-7点这两个小时产生72万订单，则1个小时会产生36万个订单；精确到秒，则每秒会产生100个订单，如果预计峰值每秒会产生1000个订单来计算，然后根据每个订单会产生多少个java内存对象，占用多少内存空间，然后*1000即可计算得出内存的内存的占用量。
->
-> 要求响应时间100ms呢？如果预计峰值每秒会产生1000个订单，则可以按照并发量为1000来进行架构设计，如果每台应用服务器可以支持100的并发，则可以搭建10台这样的应用服务器，然后进行负载均衡。
->
-> <font color="red">**每台应用服务器支持的最大并发数，需要进行压测**</font>
-
-#### 2. 案例2：12306抢票
-
-<font color="red">**12306遭遇春节大规模抢票应该如何支撑？**</font>
-
-> 12306应该是中国并发量最大的秒杀网站：号称并发量100W最高
->
-> 策略：CDN -> LVS -> NGINX -> 业务系统 -> 每台机器1W并发（10K问题） 100台机器
->
-> 1. 普通电商订单： -> 下单 ->订单系统（IO）减库存 ->等待用户付款
-> 2. 12306的一种可能的模型：下单 -> 减库存 和 订单(redis kafka) 同时异步进行 ->等付款
->
-> 减库存最后还会把压力压到一台服务器；可以做分布式本地库存 + 单独服务器做库存均衡
->
-> 大流量的处理方法：**分而治之，多级缓存**
-
-#### 3. 案例3：50万PV的资料类网站
-
-有一个50万PV的资料类网站（从磁盘提取文档到内存）原服务器32位，1.5G的堆，用户反馈网站比较缓慢，因此公司决定升级，新的服务器为64位，16G的堆内存，结果用户反馈卡顿十分严重，反而比以前效率更低了？
-
-1. 为什么原网站慢?
-
-   很多用户浏览数据，很多数据load到内存，内存不足，频繁GC，STW长，响应时间变慢
-
-2. 为什么会更卡顿？
-
-   内存越大，FGC时间越长（内存大了，占满的时间长了，也就是频率低了，但是卡顿时间更长了）
-
-3. 咋办？
-
-   更换垃圾回收器：PS -> PN + CMS 或者 G1
-
-#### 4. 系统CPU经常100%如何调优？
-
-> CPU100%那么一定有线程在占用系统资源，
-
-1. 找出哪个进程cpu高（top）
-2. 该进程中的哪个线程cpu高（top -Hp）
-3. 导出该线程的堆栈 (jstack)
-4. 查找哪个方法（栈帧）消耗时间 (jstack)
-5. 工作线程占比高 | 垃圾回收线程占比高
-
-#### 5. 系统内存飙高如何查找问题？
-
-1. 导出堆内存 (jmap)
-2. 分析 (jhat jvisualvm mat jprofiler ... )
-
-#### 6. 案例6：内存不高，FGC很频繁
-
-如果有一个系统，内存一直消耗不超过10%，但是观察日志，发现FGC总是频繁产生，会是什么原因引起的？
-
-### 8. 解决JVM运行中遇到的问题
+### 7. 解决JVM运行中遇到的问题
 
 #### 1. 一个案例理解常用工具
 
@@ -1460,19 +1404,12 @@ total = eden + 1个survivor
     1. 设定了参数HeapDump，OOM的时候会自动产生堆转储文件（其次）
     2. 很多服务器备份（高可用），停掉这台服务器对其他服务器不影响（最好）
     3. 在线定位：arthas（一般小点儿的公司用不到）
+    4. 如果程序宕了，先不要着急重启，可以先使用此命令把内存中的堆信息导出
     ```
 
 12. java -Xms20M -Xmx20M -XX:+UseParallelGC -XX:+HeapDumpOnOutOfMemoryError  com.mashibing.jvm.gc.T15_FullGC_Problem01
 
 13. 使用MAT / jhat /jvisualvm 进行dump文件分析
-
-    ```java
-    https://www.cnblogs.com/baihuitestsoftware/articles/6406271.html 
-    jhat -J-mx512M xxx.dump
-    http://192.168.17.11:7000
-    拉到最后：找到对应链接
-    可以使用OQL查找特定问题对象
-    ```
 
 14. 找到代码的问题
 
@@ -1508,36 +1445,282 @@ total = eden + 1个survivor
 
 #### 5. arthas在线排查工具
 
+> https://github.com/alibaba/arthas
+>
+> https://github.com/alibaba/arthas/blob/master/README_CN.md
+>
+> https://arthas.aliyun.com/doc/
+
 1. 为什么需要在线排查？
 
    > 在生产上我们经常会碰到一些不好排查的问题，例如线程安全问题，用最简单的threaddump或者heapdump不好查到问题原因。为了排查这些问题，有时我们会临时加一些日志，比如在一些关键的函数里打印出入参，然后重新打包发布，如果打了日志还是没找到问题，继续加日志，重新打包发布。对于上线流程复杂而且审核比较严的公司，从改代码到上线需要层层的流转，会大大影响问题排查的进度。 
 
-2. jvm观察jvm信息
+2. 下载arthas：https://arthas.aliyun.com/arthas-boot.jar
 
-3. thread定位线程问题
+3. 启动arthas：java -jar arthas-boot.jar
 
-4. dashboard 观察系统情况
+   启动之后，会找到所有的java进程，列表展示，最前面有一个进程号的数字；输入那个数字，就可以让arthas挂载到相对应的进程上，然后就可以通过arthas的命令去观察这个进程。
 
-5. heapdump + jhat分析
+4. arthas常用命令：
 
-6. jad反编译
+   1. help；可以看到arthas支持的n多个命令
 
-   - 动态代理生成类的问题定位
-   - 第三方的类（观察代码）
-   - 版本问题（确定自己最新提交的版本是不是被使用）
+   2. jvm（jinfo）；jvm相关的非常详细的信息
 
-7. redefine 热替换
+   3. thread ；显示所有线程列表
 
-   - 目前有些限制条件：只能改方法实现（方法已经运行完成），不能改方法名， 不能改属性
-     m() -> mm()
+   4. thread 线程号；显示当前线程的信息
 
-8. sc  - search class
+   5. dashboard ；命令行模拟图形界面观察系统情况（类似top命令）
 
-9. watch  - watch method
+   6. heapdump xxx.dump ；导出堆转储文件，类似（jmap -dump命令），对系统性能有很大影响，慎用！
 
-10. 没有包含的功能：jmap
+   7. jhat xxx.dump（jdk自带的命令，不是arthas的命令）；用于对堆存储文件进行分析；分析完成之后，会启动一个服务，然后通过浏览器访问这地址，可以看到`jhat`的分析结果；支持OQL查询语法；
 
-## JVM常见参数
+      ```java
+      https://www.cnblogs.com/baihuitestsoftware/articles/6406271.html
+      jhat -J-mx512M xxx.dump
+      http://192.168.17.11:7000
+      拉到最后：找到对应链接
+      可以使用OQL查找特定问题对象
+      ```
+
+   8. jad class完全限定名；
+
+      - 动态代理生成类的问题定位
+      - 第三方的类（观察代码）
+      - 版本问题（确定自己最新提交的版本是不是被使用）
+
+   9. redefine class文件路径；热替换某个class：需要自己修改那个类，然后重新编译成class，然后再使用该命令进行热替换
+
+      目前有些限制条件：只能改方法实现（方法已经运行完成），不能改方法名， 不能改属性
+
+   10. sc ；search class
+
+   11. watch ；watch method
+
+5. 没有包含的功能：jmap -histo 4655 | head -20，查找有多少对象产生
+
+### 8. 调优案例汇总
+
+> OOM产生的原因多种多样，有些程序未必产生OOM，但是会不断FGC(CPU飙高，但内存回收特别少) 
+>
+> 用jvm都会溢出，mycat用崩过，1.6.5某个临时版本解析sql子查询算法有问题，9个exists的联合sql就导致生成几百万的对象
+
+#### 1. 案例1：每日百万订单
+
+<font color="red">**垂直电商，最高每日百万订单，处理订单系统需要什么样的服务器配置？**</font>
+
+> 每天百万订单，预计每天晚上5-7点这两个小时产生72万订单，则1个小时会产生36万个订单；精确到秒，则每秒会产生100个订单，如果预计峰值每秒会产生1000个订单来计算，然后根据每个订单会产生多少个java内存对象，占用多少内存空间，然后*1000即可计算得出内存的内存的占用量。
+>
+> 要求响应时间100ms呢？如果预计峰值每秒会产生1000个订单，则可以按照并发量为1000来进行架构设计，如果每台应用服务器可以支持100的并发，则可以搭建10台这样的应用服务器，然后进行负载均衡。
+>
+> <font color="red">**每台应用服务器支持的最大并发数，需要进行压测**</font>
+
+#### 2. 案例2：12306抢票
+
+<font color="red">**12306遭遇春节大规模抢票应该如何支撑？**</font>
+
+> 12306应该是中国并发量最大的秒杀网站：号称并发量100W最高
+>
+> 策略：CDN -> LVS -> NGINX -> 业务系统 -> 每台机器1W并发（10K问题） 100台机器
+>
+> 1. 普通电商订单： -> 下单 ->订单系统（IO）减库存 ->等待用户付款
+> 2. 12306的一种可能的模型：下单 -> 减库存 和 订单(redis kafka) 同时异步进行 ->等付款
+>
+> 减库存最后还会把压力压到一台服务器；可以做分布式本地库存 + 单独服务器做库存均衡
+>
+> 大流量的处理方法：**分而治之，多级缓存**
+
+#### 3. 案例3：50万PV的资料类网站
+
+有一个50万PV的资料类网站（从磁盘提取文档到内存）原服务器32位，1.5G的堆，用户反馈网站比较缓慢，因此公司决定升级，新的服务器为64位，16G的堆内存，结果用户反馈卡顿十分严重，反而比以前效率更低了？
+
+1. 为什么原网站慢?
+
+   很多用户浏览数据，很多数据load到内存，内存不足，频繁GC，STW长，响应时间变慢
+
+2. 为什么会更卡顿？
+
+   内存越大，FGC时间越长（内存大了，占满的时间长了，也就是频率低了，但是卡顿时间更长了）
+
+3. 咋办？
+
+   更换垃圾回收器：PS -> PN + CMS 或者 G1
+
+#### 4. 系统CPU经常100%如何调优？
+
+> CPU100%那么一定有线程在占用系统资源，
+
+1. 找出哪个进程cpu高（top）
+2. 该进程中的哪个线程cpu高（top -Hp）
+3. 导出该线程的堆栈 (jstack)
+4. 查找哪个方法（栈帧）消耗时间 (jstack)
+5. 工作线程占比高 | 垃圾回收线程占比高
+
+#### 5. 系统内存飙高如何查找问题？
+
+1. 导出堆内存 (jmap)
+2. 分析 (jhat jvisualvm mat jprofiler ... )
+
+#### 6. 案例6：内存不高，FGC很频繁
+
+如果有一个系统，内存一直消耗不超过10%，但是观察日志，发现FGC总是频繁产生，会是什么原因引起的？
+
+1. 有人在程序中显式的不停的调用System.gc()
+
+#### 7. 硬件升级系统反而卡顿的问题
+
+同案例3；
+
+#### 8. 线程池不当运用产生OOM问题
+
+同7.1.1（一个案例理解常用工具中的demo，不断产生对象；不断往List中加对象太Low）
+
+#### 9. 频繁FGC，系统卡顿
+
+> 可能的原因：使用的人太多了，内存不够用；把很多数据load到内存，然后不会被释放，每次FGC回收的太少，导致频繁FGC，系统卡顿
+>
+> 同案例3；
+
+再找不到原因的情况下可以尝试下面几种方案：
+
+1. 扩内存，可以延长FGC的时间；等开发FGC时，重启服务；
+2. 更换垃圾回收器G1；
+
+#### 10. tomcat http-header-size过大
+
+server.max-http-header-size=10000000（默认4096字节）每一个连接进来头部都会占用100M的内存，所以很难扛得住高并发。
+
+org.apache.coyote.http11.Http11OutputBuffer 对象特别多，且内存占用很大；当请求过多，设置堆内存太小，会导致OOM问题。
+
+#### 11. Lambda导致方法区溢出
+
+> MethodArea：1.7 Perm / 1.8 Metaspace
+
+LambdaGC.java     -XX:MaxMetaspaceSize=9M -XX:+PrintGCDetails
+
+```java
+public class LambdaGC {
+    public static void main(String[] args) {
+        for(;;) {
+            I i = C::n;
+        }
+    }
+    public static interface I {
+        void m();
+    }
+    public static class C {
+        static void n() {
+            System.out.println("hello");
+        }
+    }
+}
+```
+
+每一个Lambda表达式都会产生一个Class（Class会分配到MethodArea），频繁创建Lambda表达式，会导致MethodArea溢出
+
+```java
+"C:\Program Files\Java\jdk1.8.0_181\bin\java.exe" -XX:MaxMetaspaceSize=9M -XX:+PrintGCDetails "-javaagent:C:\Program Files\JetBrains\IntelliJ IDEA Community Edition 2019.1\lib\idea_rt.jar=49316:C:\Program Files\JetBrains\IntelliJ IDEA Community Edition 2019.1\bin" -Dfile.encoding=UTF-8 -classpath "C:\Program Files\Java\jdk1.8.0_181\jre\lib\charsets.jar;C:\Program Files\Java\jdk1.8.0_181\jre\lib\deploy.jar;C:\Program Files\Java\jdk1.8.0_181\jre\lib\ext\access-bridge-64.jar;C:\Program Files\Java\jdk1.8.0_181\jre\lib\ext\cldrdata.jar;C:\Program Files\Java\jdk1.8.0_181\jre\lib\ext\dnsns.jar;C:\Program Files\Java\jdk1.8.0_181\jre\lib\ext\jaccess.jar;C:\Program Files\Java\jdk1.8.0_181\jre\lib\ext\jfxrt.jar;C:\Program Files\Java\jdk1.8.0_181\jre\lib\ext\localedata.jar;C:\Program Files\Java\jdk1.8.0_181\jre\lib\ext\nashorn.jar;C:\Program Files\Java\jdk1.8.0_181\jre\lib\ext\sunec.jar;C:\Program Files\Java\jdk1.8.0_181\jre\lib\ext\sunjce_provider.jar;C:\Program Files\Java\jdk1.8.0_181\jre\lib\ext\sunmscapi.jar;C:\Program Files\Java\jdk1.8.0_181\jre\lib\ext\sunpkcs11.jar;C:\Program Files\Java\jdk1.8.0_181\jre\lib\ext\zipfs.jar;C:\Program Files\Java\jdk1.8.0_181\jre\lib\javaws.jar;C:\Program Files\Java\jdk1.8.0_181\jre\lib\jce.jar;C:\Program Files\Java\jdk1.8.0_181\jre\lib\jfr.jar;C:\Program Files\Java\jdk1.8.0_181\jre\lib\jfxswt.jar;C:\Program Files\Java\jdk1.8.0_181\jre\lib\jsse.jar;C:\Program Files\Java\jdk1.8.0_181\jre\lib\management-agent.jar;C:\Program Files\Java\jdk1.8.0_181\jre\lib\plugin.jar;C:\Program Files\Java\jdk1.8.0_181\jre\lib\resources.jar;C:\Program Files\Java\jdk1.8.0_181\jre\lib\rt.jar;C:\work\ijprojects\JVM\out\production\JVM;C:\work\ijprojects\ObjectSize\out\artifacts\ObjectSize_jar\ObjectSize.jar" com.mashibing.jvm.gc.LambdaGC
+[GC (Metadata GC Threshold) [PSYoungGen: 11341K->1880K(38400K)] 11341K->1888K(125952K), 0.0022190 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+[Full GC (Metadata GC Threshold) [PSYoungGen: 1880K->0K(38400K)] [ParOldGen: 8K->1777K(35328K)] 1888K->1777K(73728K), [Metaspace: 8164K->8164K(1056768K)], 0.0100681 secs] [Times: user=0.02 sys=0.00, real=0.01 secs] 
+[GC (Last ditch collection) [PSYoungGen: 0K->0K(38400K)] 1777K->1777K(73728K), 0.0005698 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+[Full GC (Last ditch collection) [PSYoungGen: 0K->0K(38400K)] [ParOldGen: 1777K->1629K(67584K)] 1777K->1629K(105984K), [Metaspace: 8164K->8156K(1056768K)], 0.0124299 secs] [Times: user=0.06 sys=0.00, real=0.01 secs] 
+java.lang.reflect.InvocationTargetException
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at sun.instrument.InstrumentationImpl.loadClassAndStartAgent(InstrumentationImpl.java:388)
+	at sun.instrument.InstrumentationImpl.loadClassAndCallAgentmain(InstrumentationImpl.java:411)
+Caused by: java.lang.OutOfMemoryError: Compressed class space
+	at sun.misc.Unsafe.defineClass(Native Method)
+	at sun.reflect.ClassDefiner.defineClass(ClassDefiner.java:63)
+	at sun.reflect.MethodAccessorGenerator$1.run(MethodAccessorGenerator.java:399)
+	at sun.reflect.MethodAccessorGenerator$1.run(MethodAccessorGenerator.java:394)
+	at java.security.AccessController.doPrivileged(Native Method)
+	at sun.reflect.MethodAccessorGenerator.generate(MethodAccessorGenerator.java:393)
+	at sun.reflect.MethodAccessorGenerator.generateSerializationConstructor(MethodAccessorGenerator.java:112)
+	at sun.reflect.ReflectionFactory.generateConstructor(ReflectionFactory.java:398)
+	at sun.reflect.ReflectionFactory.newConstructorForSerialization(ReflectionFactory.java:360)
+	at java.io.ObjectStreamClass.getSerializableConstructor(ObjectStreamClass.java:1574)
+	at java.io.ObjectStreamClass.access$1500(ObjectStreamClass.java:79)
+	at java.io.ObjectStreamClass$3.run(ObjectStreamClass.java:519)
+	at java.io.ObjectStreamClass$3.run(ObjectStreamClass.java:494)
+	at java.security.AccessController.doPrivileged(Native Method)
+	at java.io.ObjectStreamClass.<init>(ObjectStreamClass.java:494)
+	at java.io.ObjectStreamClass.lookup(ObjectStreamClass.java:391)
+	at java.io.ObjectOutputStream.writeObject0(ObjectOutputStream.java:1134)
+	at java.io.ObjectOutputStream.defaultWriteFields(ObjectOutputStream.java:1548)
+	at java.io.ObjectOutputStream.writeSerialData(ObjectOutputStream.java:1509)
+	at java.io.ObjectOutputStream.writeOrdinaryObject(ObjectOutputStream.java:1432)
+	at java.io.ObjectOutputStream.writeObject0(ObjectOutputStream.java:1178)
+	at java.io.ObjectOutputStream.writeObject(ObjectOutputStream.java:348)
+	at javax.management.remote.rmi.RMIConnectorServer.encodeJRMPStub(RMIConnectorServer.java:727)
+	at javax.management.remote.rmi.RMIConnectorServer.encodeStub(RMIConnectorServer.java:719)
+	at javax.management.remote.rmi.RMIConnectorServer.encodeStubInAddress(RMIConnectorServer.java:690)
+	at javax.management.remote.rmi.RMIConnectorServer.start(RMIConnectorServer.java:439)
+	at sun.management.jmxremote.ConnectorBootstrap.startLocalConnectorServer(ConnectorBootstrap.java:550)
+	at sun.management.Agent.startLocalManagementAgent(Agent.java:137)
+
+```
+
+#### 12. Distuptor链的长度
+
+Distuptor有个可以设置链的长度，如果过大，然后对象大，消费完不主动释放，会溢出。
+
+#### 13. 直接内存溢出问题
+
+《深入理解Java虚拟机》P59，使用Unsafe分配直接内存，或者使用NIO的问题
+
+#### 14. 栈溢出问题
+
+```java
+public class StackOverFlow {
+    public static void main(String[] args) {
+        m();
+    }
+    static void m() {
+        m();
+    }
+}
+```
+
+-Xss（线程内存空间）设定太小；一个方法会产生一个栈帧，方法调用的方法过多时，会产生栈溢出；最简单的示例：递归调用，没有跳出的条件
+
+#### 15. 内存占用问题优化
+
+```java
+Object o = null;
+for(int i=0; i<100; i++) {
+    o = new Object();
+    //业务处理
+}
+```
+
+```java
+for(int i=0; i<100; i++) {
+    Object o = new Object();
+}
+```
+
+推荐使用上面的写法。
+
+#### 16. 重写finalize引发频繁GC
+
+小米云，HBase同步系统，系统通过nginx访问超时报警，最后排查，C++程序员重写finalize引发频繁GC问题。
+
+为什么C++程序员会重写finalize？
+
+因为C++程序员需要手动回收内存；过程：new delete；调用new的时候，会默认调用构造函数；调用delete的时候，会默认调用析构函数；然后他会理所当然的认为java里面也有一个类似析构函数的方法，故把finalize方法重写了。可能在finalize写了一些耗时比较长的逻辑（200ms）
+
+#### 17. new大量线程，会产生native thread OOM
+
+new 大量线程，会产生 native thread OOM，（low）应该用线程池，
+
+解决方案：
+
+减少堆空间（太TMlow了），预留更多内存产生native thread；JVM内存占物理内存比例 50% - 80%
 
 ## JVM常见问题
 
@@ -1615,7 +1798,7 @@ java.lang.OutOfMemoryError: request {} byte for {}out of swap
 
 ### 2. 
 
-
+## JVM常见参数
 
 
 
