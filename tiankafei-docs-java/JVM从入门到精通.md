@@ -409,15 +409,15 @@ lock指令，cmpxchg
 
 ## Object对象的内存布局
 
-#### 1. 请解释以下对象的创建过程？
+### 1. 请解释以下对象的创建过程？
 
-##### 1. class加载到内存的过程
+#### 1. class加载到内存的过程
 
 1. class loading
 2. class linking（verification,preparation,resolution)
 3. class initializing
 
-##### 2. new对象的过程
+#### 2. new对象的过程
 
 1. 申请对象内存
 2. 成员变量赋默认值
@@ -425,7 +425,7 @@ lock指令，cmpxchg
    1. 成员变量顺序赋初始值
    2. 执行构造方法语句(先调用super)
 
-#### 2. 对象在内存中的存储布局？
+### 2. 对象在内存中的存储布局？
 
 ##### 观察虚拟机的配置
 
@@ -460,7 +460,7 @@ Java HotSpot(TM) Client VM (build 25.261-b12, mixed mode)
 4. 数组数据
 5. Padding对齐，8的倍数
 
-#### 3. 对象头具体包括什么？
+### 3. 对象头具体包括什么？
 
 hotspot源码的实现
 
@@ -477,20 +477,20 @@ hotspot源码的实现
 3. https://cloud.tencent.com/developer/article/1485795
 4. https://cloud.tencent.com/developer/article/1482500
 
-#### 4. 对象怎么定位？
+### 4. 对象怎么定位？
 
 https://blog.csdn.net/clover_lily/article/details/80095580
 
 1. 句柄池
 2. 直接指针
 
-#### 5. 对象怎么分配？
+### 5. 对象怎么分配？
 
 ![对象分配过程](/images/对象分配过程.png)
 
-#### 6. Object o = new Object() 在内存中占用多少字节？
+### 6. Object o = new Object() 在内存中占用多少字节？
 
-##### 自定义Agnet（1.8）
+#### 自定义Agnet（1.8）
 
 1. 创建文件TiankafeiAgent
 
@@ -572,7 +572,7 @@ https://blog.csdn.net/clover_lily/article/details/80095580
    32
    ```
 
-##### 分析对象大小-16
+#### 分析对象大小-16
 
 ```java
 -XX:+UseCompressedClassPointers
@@ -582,7 +582,7 @@ https://blog.csdn.net/clover_lily/article/details/80095580
 2. class指针`class pointer`占8个字节，当开启`-XX:+UseCompressedClassPointers`时，class指针会被压缩成4个字节
 3. padding对齐，占了4个字节（对齐不一定时4个字节，）
 
-##### 分析数组大小-16
+#### 分析数组大小-16
 
 ```java
 -XX:+UseCompressedClassPointers
@@ -593,7 +593,7 @@ https://blog.csdn.net/clover_lily/article/details/80095580
 3. 数组长度4个字节
 4. padding对齐，0个字节（上面的大小已经时对齐的了，故padding对齐为0个字节）
 
-##### 分析数组大小-24（关闭UseCompressedClassPointers）
+#### 分析数组大小-24（关闭UseCompressedClassPointers）
 
 ```java
 -XX:-UseCompressedClassPointers
@@ -604,7 +604,7 @@ https://blog.csdn.net/clover_lily/article/details/80095580
 3. 数组长度4个字节
 4. padding对齐，4个字节
 
-##### 分析对象大小（带属性的对象）
+#### 分析对象大小（带属性的对象）
 
 ```java
 private static class P {
@@ -1108,29 +1108,228 @@ CMS既然是MarkSweep，就一定会有碎片化的问题，碎片到达一定�
 
 #### 7. CMS日志分析
 
+执行命令：java -Xms20M -Xmx20M -XX:+PrintGCDetails -XX:+UseConcMarkSweepGC com.mashibing.jvm.gc.T15_FullGC_Problem01
 
+```java
+[GC (Allocation Failure) [ParNew: 6144K->640K(6144K), 0.0265885 secs] 6585K->2770K(19840K), 0.0268035 secs] [Times: user=0.02 sys=0.00, real=0.02 secs] 
 
+ParNew：年轻代收集器
+6144->640：收集前后的对比
+（6144）：整个年轻代容量
+6585 -> 2770：整个堆的情况
+（19840）：整个堆大小
+```
 
+```java
+[GC (CMS Initial Mark) [1 CMS-initial-mark: 8511K(13696K)] 9866K(19840K), 0.0040321 secs] [Times: user=0.01 sys=0.00, real=0.00 secs] 
+	//8511 (13696) : 老年代使用（最大）
+	//9866 (19840) : 整个堆使用（最大）
+[CMS-concurrent-mark-start]
+[CMS-concurrent-mark: 0.018/0.018 secs] [Times: user=0.01 sys=0.00, real=0.02 secs] 
+	//这里的时间意义不大，因为是并发执行
+[CMS-concurrent-preclean-start]
+[CMS-concurrent-preclean: 0.000/0.000 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+	//标记Card为Dirty，也称为Card Marking
+[GC (CMS Final Remark) [YG occupancy: 1597 K (6144 K)][Rescan (parallel) , 0.0008396 secs][weak refs processing, 0.0000138 secs][class unloading, 0.0005404 secs][scrub symbol table, 0.0006169 secs][scrub string table, 0.0004903 secs][1 CMS-remark: 8511K(13696K)] 10108K(19840K), 0.0039567 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+	//STW阶段，YG occupancy:年轻代占用及容量
+	//[Rescan (parallel)：STW下的存活对象标记
+	//weak refs processing: 弱引用处理
+	//class unloading: 卸载用不到的class
+	//scrub symbol(string) table: 
+		//cleaning up symbol and string tables which hold class-level metadata and 
+		//internalized string respectively
+	//CMS-remark: 8511K(13696K): 阶段过后的老年代占用及容量
+	//10108K(19840K): 阶段过后的堆占用及容量
 
-
-
-
+[CMS-concurrent-sweep-start]
+[CMS-concurrent-sweep: 0.005/0.005 secs] [Times: user=0.00 sys=0.00, real=0.01 secs] 
+	//标记已经完成，进行并发清理
+[CMS-concurrent-reset-start]
+[CMS-concurrent-reset: 0.000/0.000 secs] [Times: user=0.00 sys=0.00, real=0.00 secs]
+	//重置内部结构，为下次GC做准备
+```
 
 ### 7. G1（10ms）
 
-#### 1. 使用的算法
+> https://www.oracle.com/technical-resources/articles/java/g1gc.html
+>
+> G1时一种服务端应用使用的垃圾收集器，目标时用在多核、大内存的机器上，它在大多数情况下开业i实现指定的GC暂停时间，同时还能保持较高的吞吐量。
 
-1. 三色标记（白	灰	黑）
-2. STAB
-   - snapshot at the beginning
-   - 在起始的时候做一个快照
-   - 当B->D消失时，要把这个引用推到GC的堆栈，保证D还能被GC扫描到
+![G1](/images/G1.png)
+
+#### 1. 使用的并发标记算法
+
+> 难点：在标记对象过程中，对象引用关系正在发生改变
+
+##### 1. 三色标记算法
+
+![并行标记算法-三色标记算法](/images/并行标记算法-三色标记算法.png)
+
+##### 2. 漏标的问题
+
+> 产生漏标的充分必要条件：
+>
+> 1. 黑色对象指向了一个白色对象
+> 2. 灰色对象指向这个白色对象的引用没了
+
+![并行标记算法-三色标记算法-漏标](/images/并行标记算法-三色标记算法-漏标.png)
+
+##### 3. 漏标的解决方案
+
+> 打破上述两个条件之一即可
+
+###### 1. incremental update
+
+增量更新，关注引用的增加；把黑色重新标记为灰色，下次重新扫描属性
+
+因为一个引用的增加，需要再次遍历当前对象的所有引用，有些可能已经标记过了，需要再遍历找一遍，性能较差
+
+###### 2. snapshot at the beginning(SATB)
+
+关注引用的删除；当B->D消失时，要把这个引用推到GC的堆栈，保证D还能被GC扫描到
+
+##### 4. WriteBarrier
+
+由于RSet的存在，那么每次给对象赋引用的时候，就得做一些额外的操作；指的是在RSet中做一些额外的记录（在GC中被称为写屏障）；<font color="red">**这个写屏障 不等于 内存屏障**</font>
+
+
+
+#### 2. G1回收器的特点
+
+1. 并发收集
+2. 压缩空闲空间不会演唱GC的暂停时间
+3. 更易预测的GC暂停时间
+4. 适用不需要实现很高的吞吐量的场景
+
+#### 3. G1的基础概念
+
+##### 1. Card
+
+对象存储于一个一个的Card里面
+
+##### 2. Card Table
+
+由于做YGC时，需要扫描整个OLD区，效率非常低，所以JVM设计了CardTable，如果一个OLD区Card Table中有对象指向Y区，就将它设为Dirty，下次扫描时，只需要扫描Dirty Card；在结构上，Card Table用`BitMap`来实现
+
+##### 3. Collection Set (CSet)
+
+一组可被回收的分区的集合；在CSet中存活的数据会在GC过程中被移动到另一个可用分区，CSet中的分区可以来自Eden空间、survivor空间、或者老年代。CSet会占用不到整个堆空间的1%大小。
+
+##### 4. Remembered Set(RSet)
+
+记录了其他Region中的对象到本Region的引用；RSet的价值在于使得垃圾收集器不需要扫描整个堆找到谁引用了当前分区的对象，只需扫描RSet即可。
+
+##### 5. 新老年代比例
+
+5%-60%；一般不用手工指定，也不要手工指定，因为这是G1预测停顿时间的基准。
+
+#### 4. G1相关的问题
+
+##### 1. G1是否分代？G1垃圾回收器会产生FGC吗？
+
+G1逻辑分带，物理不分代；G1会产生FGC；对象分配不下的时候就会产生FGC
+
+##### 2. 如果G1产生FGC，你应该做什么？
+
+1. 扩内存
+2. 提高CPU性能（回收的块，业务逻辑产生对象的速度固定，垃圾回收越快，内存空间越大）
+3. 降低`MixedGC`触发的阈值，让`MixedGC`提早发生（默认是45%）
+
+##### 3. G1的回收过程
+
+###### 1. YGC
+
+- Eden空间不足（会动态调整）
+- 多线程并行执行
+
+###### 2. MixedGC == CMS
+
+> 在真正FGC之前先回收一波
+
+- -XX:InitiatingHeapOccupacyPercent；默认值45%（YGC已经不行了，当占用整个堆内存的45%之后，会产生`MixedGC`）
+
+- 当Old区超过这个值时，会启动`MixedGC`，同时会回收Y区和O区
+
+- 执行过程
+
+  1. 初始标记：STW
+
+     ![G1-初始标记png](/images/G1-初始标记png.png)
+
+  2. 并发标记
+
+     ![G1-并发标记](/images/G1-并发标记.png)
+
+  3. 最终标记：STW（重新标记）
+
+     ![G1-最终标记](/images/G1-最终标记.png)
+
+  4. 筛选回收：STW（并行）
+
+     ![G1-并行筛选回收](/images/G1-并行筛选回收.png)
+
+###### 3. FGC
+
+- Old空间不足
+- System.gc()
+- JDK10以前都是串行FGC，以后时并行FGC
+
+##### 4. 为什么G1用SATB？
+
+灰色 -> 白色，引用消失时，如果没有黑色指向白色，引用会被push到GC的堆栈；下次扫描时拿到这个引用，由于有RSet的存在，不需要扫描整个堆去查找指向白色的引用，效率比较高；SATB配合RSet，浑然天成。
+
+#### 5. G1日志分析
+
+```java
+[GC pause (G1 Evacuation Pause) (young) (initial-mark), 0.0015790 secs]
+//young -> 年轻代 Evacuation-> 复制存活对象 
+//initial-mark 混合回收的阶段，这里是YGC混合老年代回收
+   [Parallel Time: 1.5 ms, GC Workers: 1] //一个GC线程
+      [GC Worker Start (ms):  92635.7]
+      [Ext Root Scanning (ms):  1.1]
+      [Update RS (ms):  0.0]
+         [Processed Buffers:  1]
+      [Scan RS (ms):  0.0]
+      [Code Root Scanning (ms):  0.0]
+      [Object Copy (ms):  0.1]
+      [Termination (ms):  0.0]
+         [Termination Attempts:  1]
+      [GC Worker Other (ms):  0.0]
+      [GC Worker Total (ms):  1.2]
+      [GC Worker End (ms):  92636.9]
+   [Code Root Fixup: 0.0 ms]
+   [Code Root Purge: 0.0 ms]
+   [Clear CT: 0.0 ms]
+   [Other: 0.1 ms]
+      [Choose CSet: 0.0 ms]
+      [Ref Proc: 0.0 ms]
+      [Ref Enq: 0.0 ms]
+      [Redirty Cards: 0.0 ms]
+      [Humongous Register: 0.0 ms]
+      [Humongous Reclaim: 0.0 ms]
+      [Free CSet: 0.0 ms]
+   [Eden: 0.0B(1024.0K)->0.0B(1024.0K) Survivors: 0.0B->0.0B Heap: 18.8M(20.0M)->18.8M(20.0M)]
+ [Times: user=0.00 sys=0.00, real=0.00 secs] 
+//以下是混合回收其他阶段
+[GC concurrent-root-region-scan-start]
+[GC concurrent-root-region-scan-end, 0.0000078 secs]
+[GC concurrent-mark-start]
+//无法evacuation，进行FGC
+[Full GC (Allocation Failure)  18M->18M(20M), 0.0719656 secs]
+   [Eden: 0.0B(1024.0K)->0.0B(1024.0K) Survivors: 0.0B->0.0B Heap: 18.8M(20.0M)->18.8M(20.0M)], [Metaspace: 38
+76K->3876K(1056768K)] [Times: user=0.07 sys=0.00, real=0.07 secs]
+
+```
 
 ### 8. ZGC (1ms) PK C++
-算法：ColoredPointers + LoadBarrier
+算法：Colored Pointers（颜色指针） + LoadBarrier
+
+
 
 ### 9. Shenandoah
-算法：ColoredPointers + WriteBarrier
+算法：Colored Pointers（颜色指针） + WriteBarrier
+
+
 
 ### 10. Eplison
 
@@ -1147,9 +1346,15 @@ CMS既然是MarkSweep，就一定会有碎片化的问题，碎片到达一定�
 
 ### 13. 1.8默认的垃圾回收：PS + ParallelOld
 
-## 常见的垃圾回收算法详解
+### 14. 阿里的多租户JVM
 
+1. 每租户单空间
 
+   同一个JVM中，支持多个租户同时访问，共享堆空间
+
+2. session based GC（专门针对web的application）
+
+   session级别的GC，一个session结束，就直接被清理了，不需要垃圾回收器跑来跑去的进行清理
 
 ## 常见垃圾回收器组合参数设定
 
