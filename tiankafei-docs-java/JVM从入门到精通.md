@@ -1198,6 +1198,7 @@ ParNew：年轻代收集器
 2. 压缩空闲空间不会演唱GC的暂停时间
 3. 更易预测的GC暂停时间
 4. 适用不需要实现很高的吞吐量的场景
+5. G1的内存区域不是固定的E或者O
 
 #### 3. G1的基础概念
 
@@ -1207,13 +1208,15 @@ ParNew：年轻代收集器
 
 ##### 2. Card Table
 
-由于做YGC时，需要扫描整个OLD区，效率非常低，所以JVM设计了CardTable，如果一个OLD区Card Table中有对象指向Y区，就将它设为Dirty，下次扫描时，只需要扫描Dirty Card；在结构上，Card Table用`BitMap`来实现
+由于做YGC时，需要扫描整个Old区，效率非常低，所以JVM设计了CardTable，如果一个Old区Card Table中有对象指向Y区，就将它设为Dirty，下次扫描时，只需要扫描Dirty Card；在结构上，Card Table用`BitMap`来实现；就不需要扫描整个Old区了
 
 ##### 3. Collection Set (CSet)
 
 一组可被回收的分区的集合；在CSet中存活的数据会在GC过程中被移动到另一个可用分区，CSet中的分区可以来自Eden空间、survivor空间、或者老年代。CSet会占用不到整个堆空间的1%大小。
 
 ##### 4. Remembered Set(RSet)
+
+> 每一个Region里面都会有一个区域RSet，（数据结构：hashset）（占用空间大概10%）
 
 记录了其他Region中的对象到本Region的引用；RSet的价值在于使得垃圾收集器不需要扫描整个堆找到谁引用了当前分区的对象，只需扫描RSet即可。
 
