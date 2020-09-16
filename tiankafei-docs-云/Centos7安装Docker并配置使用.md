@@ -72,6 +72,75 @@ systemctl enable docker.service
 systemctl status docker.service
  ```
 
+## 安装docker图形化界面
+
+```shell
+## 搜索镜像
+docker search portainer
+
+## 拉去portainer镜像
+docker pull portainer/portainer
+
+## 启动portainer
+docker run -d -p 9000:9000 -v /var/run/docker.sock:/var/run/docker.sock --restart=always --name prtainer portainer/portainer
+
+## 访问url
+http://127.0.01:9000
+```
+
+## 安装docker harbor私有仓库
+
+### 下载harbor
+
+```http
+https://github.com/goharbor/harbor/releases
+```
+
+### 解压harbor
+
+```shell
+tar zxvf harbor-offline-installer-xxx.tgz
+```
+
+### 更新配置
+
+```shell
+## 进入harbor目录
+cd harbor
+
+## 备份配置文件
+cp harbor.yml harbor.yml.bak
+
+## 更新配置
+vim harbor.yml
+
+## 更新配置内容
+hostname: 192.168.0.21
+注释https的配置
+harbor_admin_password: tiankafei
+database:
+  password: tiankafei
+```
+
+### 安装启动harbor
+
+```shell
+## 启动harbor
+./install.sh
+```
+
+### 访问地址
+
+```http
+http://192.168.0.21/
+```
+
+### 停止harbor
+
+```shell
+docker-compose stop
+```
+
 # Docker常用命令
 
 ## Docker容器信息
