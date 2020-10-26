@@ -1469,6 +1469,14 @@ eden space 5632K, 94% used [0x00000000ff980000,0x00000000ffeb3e28,0x00000000fff0
 
 total = eden + 1个survivor
 
+虚拟内存保留：（操作系统中有虚拟内存的概念）为Metaspace做的虚拟内存的保留（整个一块大内存给你保留了）
+
+虚拟内存占用：（由于内存是分块，所以在占用的时候，是一块一块的）优先占用的一些个块（先占用了n些个块）
+
+总容量：这个Metaspace的总容量是多少，在占用的这些个块中，使用一部分作为容量，这个容量是可以弹性的扩容
+
+已经使用：真正使用的容量
+
 ### 4. 调优前的基础概念
 
 1. 吞吐量：用户代码时间 /（用户代码执行时间 + 垃圾回收时间）
@@ -1498,15 +1506,13 @@ total = eden + 1个survivor
    - 响应时间、停顿时间 [CMS G1 ZGC] （需要给用户作响应）
    - 吞吐量 = 用户时间 /( 用户时间 + GC时间) [PS]
 2. 选择回收器组合
-3. 计算内存需求（经验值 1.5G 16G）
+3. 计算内存需求
 4. 选定CPU（越高越好）
 5. 设定年代大小、升级年龄
 6. 设定日志参数
    - -Xloggc:/opt/xxx/logs/xxx-xxx-gc-%t.log -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=5 -XX:GCLogFileSize=20M -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+PrintGCCause
    - 或者每天产生一个日志文件
 7. 观察日志情况
-
-
 
 ### 7. 解决JVM运行中遇到的问题
 
