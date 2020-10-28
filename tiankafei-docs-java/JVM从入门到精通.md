@@ -1573,13 +1573,15 @@ total = eden + 1个survivor
 
 2. java -Xms200M -Xmx200M -XX:+PrintGC com.mashibing.jvm.gc.T15_FullGC_Problem01
 
-3. 一般是运维团队首先受到报警信息（CPU Memory）
+3. 一般是运维团队首先收到报警信息（CPU Memory）
 
 4. top命令观察到问题：内存不断增长 CPU占用率居高不下
 
 5. top -Hp 观察进程中的线程，哪个线程CPU和内存占比高
 
 6. jps定位具体java进程
+
+   <font color="red">很重要</font>
 
    ```java
    jstack 进程id/或者(--top -Hp 列表pid转换成16进制) 定位线程状况，重点关注：WAITING BLOCKED
@@ -1768,7 +1770,7 @@ total = eden + 1个survivor
 2. 该进程中的哪个线程cpu高（top -Hp）
 3. 导出该线程的堆栈 (jstack)
 4. 查找哪个方法（栈帧）消耗时间 (jstack)
-5. 工作线程占比高 | 垃圾回收线程占比高
+5. <font color="red">工作线程占比高 | 垃圾回收线程占比高</font>
 
 #### 5. 系统内存飙高如何查找问题？
 
