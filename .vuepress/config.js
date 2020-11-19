@@ -150,6 +150,7 @@ module.exports = {
           title: '云',
           collapsable: false,
           children: [
+			'docker启动软件命令的记录',
             'Centos7安装Docker并配置使用',
             'Centos7安装Gitlab并汉化',
             'Centos7安装Jenkins并配置使用',
