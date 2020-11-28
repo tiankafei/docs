@@ -753,7 +753,7 @@
 
 ## redis集群、主从复制
 
-![集群的几种模式](images\集群的几种模式.png)
+![集群的几种模式](/images\集群的几种模式.png)
 
 >1. 单点故障（主从集群：横向扩充）
 >
@@ -789,7 +789,7 @@
 >
 >**cluster** 可以使用作为代理。
 >
->![redis-cluster集群](images\redis-cluster集群.png)
+>![redis-cluster集群](/images\redis-cluster集群.png)
 >
 >集群高可用：ACP原则：可用性，一致性，分区容错性
 >

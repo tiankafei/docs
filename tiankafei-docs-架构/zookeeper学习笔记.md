@@ -37,13 +37,13 @@ zookeeper可以当作集群使用，很少会使用单实例。集群的两种�
 
 zookeeper是主从复制集群，每个节点的数据是完全一样的。写（增删改）只能发生在leader上，查可以发生在所有的节点上。主是单点，依然会存在单点的问题；
 
-![zookeeper集群](images\zookeeper集群.png)
+![zookeeper集群](/images\zookeeper集群.png)
 
 ## 性能测试
 
 ZooKeeper吞吐量，随读/写比的变化而定。在读取数量超过写入次数的应用程序中，由于写入涉及同步所有服务器的状态，因此该性能特别高。（对于协调服务来说，读取次数多于写入次数）。ZooKeeper应用程序可在数千台计算机上运行，并且在读取比写入更常见的情况下，其性能最佳，比率约为10：1。
 
-![ZooKeeper吞吐量-随读-写比的变化而定](images\ZooKeeper吞吐量-随读-写比的变化而定.jpg)
+![ZooKeeper吞吐量-随读-写比的变化而定](/images\ZooKeeper吞吐量-随读-写比的变化而定.jpg)
 
 横轴：读取所占的比例，纵轴：每秒的查询量。当全是读取的时候，就算是3个节点的集群也能喉住80000+的请求数量。
 
@@ -55,7 +55,7 @@ ZooKeeper吞吐量，随读/写比的变化而定。在读取数量超过写入�
 4. 两个追随者的失败和恢复
 5. 另一个领导者的失败
 
-![zookeeper存在错误时的可靠性](images\zookeeper存在错误时的可靠性.jpg)
+![zookeeper存在错误时的可靠性](/images\zookeeper存在错误时的可靠性.jpg)
 
 1. 追随者失败并迅速恢复，则ZooKeeper能够在失败的情况下维持高吞吐量。
 2. 领导者选举算法允许 leader 恢复得足够快，ZooKeeper只需不到200毫秒即可选出新的领导者。
@@ -65,7 +65,7 @@ ZooKeeper吞吐量，随读/写比的变化而定。在读取数量超过写入�
 
 Zookeeper 的数据结构类似于文件系统，不同的是 zookeeper 的每个节点都可以存储少量的数据，最大支持存储1M的数据。zookeeper数据保存在内存中，可以实现高吞吐量和低延迟数量。
 
-![zookeeper数据结构](images\zookeeper数据结构.jpg)
+![zookeeper数据结构](/images\zookeeper数据结构.jpg)
 
 - 目录树结构
   - 持久节点（PERSISTENT）：节点创建后，一直存在，直到主动删除了该节点。
@@ -123,7 +123,7 @@ ZooKeeper非常快速且非常简单。但是，由于其目标是作为构建�
 >
 > 运行一段时间时候，再启动时leader的选择逻辑时，先看哪些节点的数据最完整（看事务id的最大值进行比较），如果都比较完整，再看server.n中n的最大值，是leader。
 
-![zookeeper建立连接的过程](images\zookeeper建立连接的过程.png)
+![zookeeper建立连接的过程](/images\zookeeper建立连接的过程.png)
 
 ## 数据时二进制安全的
 
