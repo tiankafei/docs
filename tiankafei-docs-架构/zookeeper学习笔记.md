@@ -93,6 +93,33 @@ https://www.douban.com/note/208430424/
 
 > 呵呵，到此为止吧，当然还有很多其他的情况，但这些情况总是能在Paxos的算法中找到原型并加以解决。这也正是我们认为Paxos是Zookeeper的灵魂的原因。当然ZK Server还有很多属于自己特性的东西：Session, Watcher，Version等等等等，需要我们花更多的时间去研究和学习。
 
+### watch
+
+![zookeeper的watch](\images\zookeeper的watch.png)
+
+客户端先向ZooKeeper服务端成功注册想要监听的节点状态，同时客户端本地会存储该监听器相关的信息在WatchManager中，当ZooKeeper服务端监听的数据状态发生变化时，ZooKeeper就会主动通知发送相应事件信息给相关会话客户端，客户端就会在本地响应式的回调相关Watcher的Handler。
+
+![zookeeper-watch](\images\zookeeper-watch.png)
+
+#### ZooKeeper的Watch特性
+
+- Watch是一次性的，每次都需要重新注册，并且客户端在会话异常结束时不会收到任何通知，而快速重连接时仍不影响接收通知
+- Watch的回调执行都是顺序执行的，并且客户端在没有收到关注数据的变化事件通知之前是不会看到最新的数据，另外需要注意不要在Watch回调逻辑中阻塞整个客户端的Watch回调
+- Watch是轻量级的，WatchEvent是最小的通信单元，结构上只包含通知状态、事件类型和节点路径。ZooKeeper服务端只会通知客户端发生了什么，并不会告诉具体内容
+
+#### Zookeeper 的三种watch
+
+- exites能监控自身节点的增删，以及数据的修改，不能监控子节点
+- getData能监控自身节点的删除，以及自身节点数据的修改
+- getchildren 能监控自身节点的删除，不能监控自身节点数据的修改，能监控子节点的增加和删除，不能监控子节点数据的修改不能监控孙子节点的增加
+
+#### ZooKeeper的Watch事件
+
+- NodeCreated Znode创建时间
+- NodeDeleted Znode删除
+- NodeDataChanged Znodes数据修改
+- NodeChildrenChanged 孩子节点数据修改
+
 ## 性能测试
 
 ZooKeeper吞吐量，随读/写比的变化而定。在读取数量超过写入次数的应用程序中，由于写入涉及同步所有服务器的状态，因此该性能特别高。（对于协调服务来说，读取次数多于写入次数）。ZooKeeper应用程序可在数千台计算机上运行，并且在读取比写入更常见的情况下，其性能最佳，比率约为10：1。
@@ -179,6 +206,20 @@ ZooKeeper非常快速且非常简单。但是，由于其目标是作为构建�
 
 ![zookeeper建立连接的过程](/images\zookeeper建立连接的过程.png)
 
+## 角色
+
+### Leader
+
+多个Follower和Observer追随该角色，参与增删改查的数据操作
+
+### Follower
+
+该角色才能支持选举，有机会能够被选中成为Leader，参与数据同步和数据查询的操作
+
+### Observer
+
+追随Leader，参与数据同步和数据查询的操作
+
 ## 数据时二进制安全的
 
 外面的客户端给我推送什么样的字节数据，我原封不动的给你存进来，你那边的编解码器我不关心
@@ -199,7 +240,7 @@ ZooKeeper非常快速且非常简单。但是，由于其目标是作为构建�
    - 一个新的客户端连接进来，会消耗一个事务id，说明client的sessionID会写给所有节点
    - 客户端断开连接时，会走一个删除的逻辑，要进行统一视图，所有节点都会删，会再次消耗一个事务id
 
-## 原语api支持
+## 原语API
 
 - *create* : 在树中的某个位置创建一个节点
   - -e 表示创建的是一个临时节点
@@ -211,23 +252,5 @@ ZooKeeper非常快速且非常简单。但是，由于其目标是作为构建�
 - *get children* : 检索节点的子节点列表
 - *sync* : 等待数据传播
 
-## 角色
-
-### Leader
-
-多个Follower和Observer追随该角色，参与增删改查的数据操作
-
-### Follower
-
-该角色才能支持选举，有机会能够被选中成为Leader，参与数据同步和数据查询的操作
-
-### Observer
-
-追随Leader，参与数据同步和数据查询的操作
-
-## 
-
-
-
-## watch
+## JavaAPI
 
