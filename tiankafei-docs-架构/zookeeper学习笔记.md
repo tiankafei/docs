@@ -113,12 +113,29 @@ https://www.douban.com/note/208430424/
 - getData能监控自身节点的删除，以及自身节点数据的修改
 - getchildren 能监控自身节点的删除，不能监控自身节点数据的修改，能监控子节点的增加和删除，不能监控子节点数据的修改不能监控孙子节点的增加
 
-#### ZooKeeper的Watch事件
+#### Watch事件状态
 
-- NodeCreated Znode创建时间
-- NodeDeleted Znode删除
-- NodeDataChanged Znodes数据修改
-- NodeChildrenChanged 孩子节点数据修改
+- KeeperState:Disconneced 连接失败
+- KeeperState:SyncConnected 连接成功
+- KeeperState:AuthFailed 认证失败
+- KeeperState:Expired 会话过期
+
+#### Watch事件类型
+
+- EventType:NodeCreated Znode创建时间
+- EventType:NodeDeleted Znode删除
+- EventType:NodeDataChanged Znodes数据修改
+- EventType:NodeChildrentChanged 孩子节点数据修改
+
+#### Zookeeper的状态
+
+- CONNECTING Zookeeper服务器不可用，客户端处于尝试链接状态
+-  ASSOCIATING 
+- CONNECTED 链接建立，可以与Zookeeper服务器正常通信
+- CONNECTEDREADONLY 处于只读状态的链接状态，只读模式可以在构造Zookeeper时指定
+- CLOSED 会话关闭，显式调用Zookeeper的close方法
+- AUTH_FAILED 建立链接时，认证失败
+- NOT_CONNECTED 链接断开状态
 
 ## 性能测试
 
@@ -229,10 +246,10 @@ ZooKeeper非常快速且非常简单。但是，由于其目标是作为构建�
 > zookeeper是顺序执行的，体现在这个id身上的，所有的这种增删改这种写操作，他们都会递交给leader，因为leader是单机，所以单机维护一个单调递增的计数器很容器。
 
 1. 事务id：一个64位的字节；0x代表16进制，16进制的每一位代表4个2进制位，那么两位代表一个字节(8位)，低32位是事务递增序列，高32位表示的是第几代leader。每次leader更新换代，后面的事务id从0开始重新计算。
-2. cZxid：创建节点的事务id
-3. mZxid：修改节点的事务id
+2. cZxid：即Created ZXID，表示该数据节点被创建时的事务ID
+3. mZxid：即Modified ZXID，表示该节点最后一次被更新时的事务ID
 4. pZxid：当前节点创建的最后那一个的节点的事务id
-5. ephemeralOwner：没有归属谁，则说明不是临时节点；有值说明是临时节点，归属一个sessionID
+5. ephemeralOwner：创建该临时节点的会话的sessionID。如果该节点是持久节点，那么这个属性值为0
 6. 客户端连接服务端之后，客户端挂了sessionID就没了，那么临时节点就会被删除掉
 7. 客户端连接服务端之后，服务端挂了，那么临时节点是否会丢失？
    - 不会丢失
@@ -253,4 +270,42 @@ ZooKeeper非常快速且非常简单。但是，由于其目标是作为构建�
 - *sync* : 等待数据传播
 
 ## JavaAPI
+
+> zookeeper有session会话的概念，没有连接池的概念，每一个客户端连接都会产生一个新的session会话
+
+### 获取Zookeeper连接
+
+
+
+### 创建节点
+
+
+
+### 删除节点
+
+
+
+### 判断节点是否存在
+
+
+
+### 获取数据
+
+
+
+### 设置数据
+
+
+
+### 获取子节点
+
+
+
+### 同步数据
+
+
+
+### 
+
+
 
