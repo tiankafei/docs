@@ -273,39 +273,232 @@ ZooKeeper非常快速且非常简单。但是，由于其目标是作为构建�
 
 > zookeeper有session会话的概念，没有连接池的概念，每一个客户端连接都会产生一个新的session会话
 
-### 获取Zookeeper连接
+### 获取Zookeeper连接，并连接监听器
+
+```java
+/**
+ * 获取 ZooKeeper 对象
+ * @param address
+ * @return
+ */
+public static ZooKeeper getZooKeeper(String address){
+	try {
+		CountDownLatch countDownLatch = new CountDownLatch(1);
+		ZooKeeper zooKeeper = new ZooKeeper(address, 1000, new DefaultWatcher(countDownLatch));
+
+		countDownLatch.await();
+		return zooKeeper;
+	} catch (IOException | InterruptedException e) {
+		e.printStackTrace();
+		return null;
+	}
+}
+```
+
+```java
+public class DefaultWatcher implements Watcher {
+    CountDownLatch countDownLatch;
+    public DefaultWatcher(CountDownLatch countDownLatch) {
+        this.countDownLatch = countDownLatch;
+    }
+    @Override
+    public void process(WatchedEvent watchedEvent) {
+        switch (watchedEvent.getState()) {
+            case Disconnected:
+                break;
+            case SyncConnected:
+                countDownLatch.countDown();
+                break;
+            case AuthFailed:
+                break;
+            case ConnectedReadOnly:
+                break;
+            case SaslAuthenticated:
+                break;
+            case Expired:
+                break;
+            default: break;
+        }
+    }
+}
+```
+
+### 添加节点：zk.create
+
+```java
+// CreateMode.EPHEMERAL;			临时节点
+// CreateMode.EPHEMERAL_SEQUENTIAL;  临时顺序节点
+// CreateMode.PERSISTENT;			持久节点
+// CreateMode.PERSISTENT_SEQUENTIAL; 持久顺序节点
+
+// ZooDefs.Ids.ANYONE_ID_UNSAFE;    任何ID不安全
+// ZooDefs.Ids.AUTH_IDS;            身份验证id
+// ZooDefs.Ids.CREATOR_ALL_ACL;	    创造者所有ACL
+// ZooDefs.Ids.OPEN_ACL_UNSAFE;	    开放的ACL不安全
+// ZooDefs.Ids.READ_ACL_UNSAFE;	    读ACL不安全
+
+/**
+ * create 方法参数
+ *    第一个参数 路径
+ *    第二个参数  值  bytes
+ *    第三个参数  对节点的访问控制
+ *    第四个参数  节点的类型 短暂  永久  序号
+ * @throws KeeperException
+ * @throws InterruptedException
+ */
+@Test
+public void create() throws KeeperException, InterruptedException {
+	String s = zk.create("/node5", "cjw".getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+	System.out.println(s);
+}
+```
+
+### 删除节点：zk.delete
+
+```java
+/**
+ * 删除节点
+ *    非空节点删除不掉
+ * @throws InterruptedException
+ * @throws KeeperException
+ */
+@Test
+public void remove() throws KeeperException, InterruptedException {
+	zk.delete("/node3", 2);
+}
+```
+
+### 判断节点是否存在：zk.exists
+
+```java
+/**
+ * 判断节点是否存在
+ * @throws InterruptedException
+ * @throws KeeperException
+ */
+@Test
+public void exit() throws KeeperException, InterruptedException {
+	// 设置为 true 会调用 zk中的监听器
+	Stat exists = zk.exists("/node5", true);
+	if(exists == null) {
+		System.out.println("该节点不存在!");
+	} else {
+		System.out.println("该节点存在!");
+		System.out.println(exists.getDataLength());
+	}
+}
+```
+
+### 获取节点内容：zk.getData
+
+```java
+/**
+ * 获取节点的内容
+ * @throws InterruptedException
+ * @throws KeeperException
+ */
+@Test
+public void getData() throws KeeperException, InterruptedException {
+	byte[] data = zk.getData("/node3", true, null);
+	System.out.println(new String(data));
+}
+```
+
+### 修改节点内容：zk.setData
+
+```java
+/**
+ * 修改节点内容
+ * 	  version -1 自动维护
+ * @throws InterruptedException
+ * @throws KeeperException
+ */
+@Test
+public void update() throws KeeperException, InterruptedException {
+	Stat stat = zk.setData("/node3", "相对论".getBytes(), -1);
+	System.out.println(stat.getVersion());
+}
+```
+
+### 获取子节点：zk.getChildren
+
+```java
+/**
+ * 获取子节点
+ * @throws InterruptedException
+ * @throws KeeperException
+ */
+@Test
+ public void getchildrens() throws KeeperException, InterruptedException {
+	 List<String> children = zk.getChildren("/", true);
+	 for (int i = 0; i < children.size(); i++) {
+		 String s =  children.get(i);
+		 System.out.println(s);
+	 }
+ }
+```
+
+### 同步节点数据：zk.sync
+
+```java
+/**
+ * 同步节点数据
+ * @throws InterruptedException
+ * @throws KeeperException
+ */
+@Test
+public void sync() throws KeeperException, InterruptedException {
+	zk.sync("/name2", new AsyncCallback.VoidCallback() {
+		@Override
+		public void processResult(int rc, String path, Object ctx) {
+
+		}
+	}, new Object());
+}
+```
+
+### 获取子节点的监听器
+
+```java
+/**
+ * 监听事件:子节点的数量发生改变时触发(只会触发一次)
+ */
+@Test
+public void getchildrens2() throws KeeperException, InterruptedException {
+	List<String> children = zk.getChildren("/", new Watcher() {
+		@Override
+		public void process(WatchedEvent event) {
+			System.out.println("子节点的数量发生改变!");
+		}
+	});
+	for (int i = 0; i < children.size(); i++) {
+		String s =  children.get(i);
+		System.out.println(s);
+	}
+	Thread.sleep(Long.MAX_VALUE);
+}
+```
+
+### 获取节点数据的监听器
+
+```java
+/**
+ * 监听事件:节点数据发送改变时触发(只会触发一次)
+ */
+@Test
+public void getdata() throws KeeperException, InterruptedException {
+	byte[] data = zk.getData("/name2", new Watcher() {
+		@Override
+		public void process(WatchedEvent event) {
+			System.out.println("节点数据发送了改变!");
+		}
+	}, null);
+	System.out.println(new String(data));
+	Thread.sleep(Long.MAX_VALUE);
+}
+```
 
 
-
-### 创建节点
-
-
-
-### 删除节点
-
-
-
-### 判断节点是否存在
-
-
-
-### 获取数据
-
-
-
-### 设置数据
-
-
-
-### 获取子节点
-
-
-
-### 同步数据
-
-
-
-### 
 
 
 
