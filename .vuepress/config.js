@@ -91,9 +91,8 @@ module.exports = {
             'elasticsearch学习笔记',
             'Tomcat源码分析',
             'Netty源码分析',
-            '分布式事务',
-            '分布式锁',
-			'spring cloud微服务相关知识点',
+            '分布式架构',
+			'面试相关技术点',
           ]
         }
       ],
