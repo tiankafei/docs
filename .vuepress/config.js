@@ -166,8 +166,7 @@ module.exports = {
           title: '其他',
           collapsable: false,
           children: [
-            'git上fork后再更新',
-            'git同时连接多个远程仓库',
+            'git命令',
             '常用正则表达式',
           ]
         }
