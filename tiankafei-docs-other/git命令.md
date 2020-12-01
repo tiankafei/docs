@@ -125,3 +125,10 @@
    2. 使用revert HEAD是撤销最近的一次提交，如果你最近一次提交是用revert命令产生的，那么再执行一次就相当于撤销了上次的撤销操作，即连续两次执行revert HEAD命令，相当于没有执行
    3. 使用revert HEAD~1表示撤销最近2次提交，后面的数字是从0开始的，即revert HEAD~n撤销n+1次提交
    4. 如果使用revert撤销的不是最近一次提交，那么一定会有代码冲突，需要合并代码，合并代码只需要把当前的代码全部取消，保留之前版本的代码即可。
+
+## git for windows下的Filename too long
+
+```shell
+git config --global core.longpaths true
+```
+
