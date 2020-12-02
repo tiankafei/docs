@@ -17,7 +17,7 @@ module.exports = {
       {text: '大数据', link: '/tiankafei-docs-大数据/centos7安装配置Hadoop/'},
       {text: 'Linux', link: '/tiankafei-docs-linux/centos常用命令/'},
       {text: '云', link: '/tiankafei-docs-云/Centos7安装Docker并配置使用/'},
-      {text: '其他', link: '/tiankafei-docs-other/git上fork后再更新/'},
+      {text: '其他', link: '/tiankafei-docs-other/git命令/'},
       {text: '英语', link: '/tiankafei-docs-en/词性语法学习/'},
 /*      {
         text: '更多文档',
@@ -166,8 +166,7 @@ module.exports = {
           title: '其他',
           collapsable: false,
           children: [
-            'git上fork后再更新',
-            'git同时连接多个远程仓库',
+            'git命令',
             '常用正则表达式',
           ]
         }
