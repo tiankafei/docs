@@ -168,6 +168,7 @@ module.exports = {
           children: [
             'git命令',
             '常用正则表达式',
+			'常用配置',
           ]
         }
       ],
