@@ -1,4 +1,4 @@
-# gitlab安装
+# Centos7安装Gitlab并汉化
 
 ## 添加gitlab镜像
 

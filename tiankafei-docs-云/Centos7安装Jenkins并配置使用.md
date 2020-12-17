@@ -1,4 +1,4 @@
-# Jenkins安装及配置
+# Centos7安装Jenkins并配置使用
 
 ## Tomcat安装并设置开机启动
 

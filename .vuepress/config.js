@@ -92,7 +92,6 @@ module.exports = {
             'Tomcat源码分析',
             'Netty源码分析',
             '分布式架构',
-			'面试相关技术点',
           ]
         }
       ],
@@ -150,14 +149,14 @@ module.exports = {
           title: '云',
           collapsable: false,
           children: [
-			'docker启动软件命令的记录',
             'Centos7安装Docker并配置使用',
             'Centos7安装Gitlab并汉化',
             'Centos7安装Jenkins并配置使用',
+			'docker启动软件命令的记录',
             'k8s-nfs文件共享安装及使用',
+			'k8s集群搭建',
+			'k8s脚本部署',
             'k8s最新版安装过程',
-            'k8s脚本部署',
-            'k8s常用命令',
           ]
         }
       ],
@@ -167,8 +166,10 @@ module.exports = {
           collapsable: false,
           children: [
             'git命令',
-            '常用正则表达式',
 			'常用配置',
+            '常用正则表达式',
+			'重要知识点',
+			'概念科普',
           ]
         }
       ],
