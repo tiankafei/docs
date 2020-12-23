@@ -71,15 +71,111 @@ https://www.elastic.co/guide/en/elasticsearch/reference/7.10/getting-started.htm
 
 ### ES 核心概念
 
-1. cluster（集群）：每个集群至少包含两个节点
-2. node：集群中的每个节点，一个节点不代表一台服务器
-3. field：一个数据字段，与index和type一起，可以定位一个doc
-4. document：es最小的数据单元，通常是以json的形式存储的
-5. type：逻辑上的数据分类，es7.x中删除了type的概念
-6. index：一类相同或者类似的doc，比如一个员工索引，商品索引
-7. shard分片：P分片，R副本
-   - 一个index包含多个shard，默认5个分片，默认每个分片分配一个副本，分片的数量在创建索引的时候设置，如果想修改，需要重建索引
-   - 每个shard都是一个lucene实例，有完整的创建索引的处理请求能力
-   - es会自动在nodes上为我们做shard均衡
-   - 一个doc是不可能同时存在与多个分片中的，但是可以存在于多个副本中
+1. `cluster`（集群）：每个集群至少包含两个节点
+2. `node`：集群中的每个节点，一个节点不代表一台服务器
+3. `field`：一个数据字段，与`index`和`type`一起，可以定位一个`doc`
+4. `document`：`es`最小的数据单元，通常是以`json`的形式存储的
+5. `type`：逻辑上的数据分类，`es7.x`中删除了`type`的概念
+6. `index`：一类相同或者类似的`doc`，比如一个员工索引，商品索引
+7. `shard`分片：P分片，R副本
+   - 一个`index`包含多个`shard`，默认5个分片，默认每个分片分配一个副本，分片的数量在创建索引的时候设置，如果想修改，需要重建索引
+   - 每个`shard`都是一个`lucene`实例，有完整的创建索引的处理请求能力
+   - es会自动在`nodes`上为我们做`shard`均衡
+   - 一个`doc`是不可能同时存在与多个分片中的，但是可以存在于多个副本中
    - 分片和对应的副本不能同时存在于同一个节点，所以最低的可用配置是两个节点，互为主备
+
+## 环境安装
+
+### docker 安装配置 es
+
+#### 拉取镜像
+
+```sh
+docker pull elasticsearch:7.6.2
+```
+
+#### 启动es
+
+```shell
+docker run -d -p 9200:9200 -p 9300:9300 --restart=always -e "discovery.type=single-node" --name=elasticsearch elasticsearch:7.6.2
+```
+
+#### 修改配置
+
+1. 进入容器
+
+   ```shell
+   docker exec -it elasticsearch bash
+   ```
+
+2. vi config/elasticsearch.yml
+
+   ```shell
+   cluster.name: "my-application"
+   node.name: "node-1"
+   network.host: 0.0.0.0
+   ```
+
+3. 重启容器
+
+   ```shell
+   docker restart elasticsearch
+   ```
+
+#### 访问地址
+
+```http
+http://<IP>:<PORT>
+http://192.168.21.123:9200/
+```
+
+### docker 安装配置 kibana
+
+#### 拉取镜像
+
+```shell
+docker pull kibana:7.6.2
+```
+
+#### 启动kibana
+
+```shell
+docker run -d -p 5601:5601 --restart=always --name kibana kibana:7.6.2
+```
+
+#### 出现的问题修改配置
+
+1. 如果出现以下页面：Kibana server is not ready yet，说明Kibana没有找到ES节点
+
+2. 进入容器
+
+   ```shell
+   docker exec -it kibana bash
+   ```
+
+3. vi config/kibana.yml
+
+   ```yaml
+   #
+   # ** THIS IS AN AUTO-GENERATED FILE **
+   #
+   
+   # Default Kibana configuration for docker target
+   server.name: kibana
+   server.host: "0"
+   elasticsearch.hosts: [ "http://192.168.21.123:9200" ]
+   xpack.monitoring.ui.container.elasticsearch.enabled: true
+   ```
+
+4. 重启容器
+
+   ```shell
+   docker restart kibana
+   ```
+
+#### 访问地址
+
+```http
+http://<IP>:<PORT>
+http://192.168.21.123:5601/
+```
