@@ -38,6 +38,8 @@ https://www.elastic.co/guide/en/elasticsearch/reference/7.10/getting-started.htm
    - 节点一旦宕机，节点数据丢失，后果不堪设想，可用性差
    - 自己维护，麻烦（自己创建管理索引），单台节点的承载请求的能里是有限的，需要人工做负载。
 
+![倒排索引](/images/倒排索引.png)
+
 ### Elasticsearch
 
 1. 特点
