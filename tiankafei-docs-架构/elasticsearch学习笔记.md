@@ -208,30 +208,30 @@ http://192.168.21.123:9200/_cluster/health
 
 #### API
 
-`/_cat/allocation`      	#查看单节点的shard分配整体情况
-`/_cat/shards`          	#查看各shard的详细情况
-`/_cat/shards/{index}`  	#查看指定分片的详细情况
-`/_cat/master`          	#查看master节点信息
-`/_cat/nodes`           	#查看所有节点信息
-`/_cat/indices`         	#查看集群中所有index的详细信息
-`/_cat/indices/{index}` 	#查看集群中指定index的详细信息
-`/_cat/segments`        	#查看各index的segment详细信息,包括segment名, 所属shard, 内存(磁盘)占用大小, 是否刷盘
-`/_cat/segments/{index}`	#查看指定index的segment详细信息
-`/_cat/count`           	#查看当前集群的doc数量
-`/_cat/count/{index}`   	#查看指定索引的doc数量
-`/_cat/recovery`        	#查看集群内每个shard的recovery过程.调整replica。
-`/_cat/recovery/{index}`	#查看指定索引shard的recovery过程
-`/_cat/health`          	#查看集群当前状态：红、黄、绿
-`/_cat/pending_tasks`   	#查看当前集群的pending task
-`/_cat/aliases`         	#查看集群中所有alias信息,路由配置等
-`/_cat/aliases/{alias}` 	#查看指定索引的alias信息
-`/_cat/thread_pool`     	#查看集群各节点内部不同类型的threadpool的统计信息,
-`/_cat/plugins`         	#查看集群各个节点上的plugin信息
-`/_cat/fielddata`       	#查看当前集群各个节点的fielddata内存使用情况
-`/_cat/fielddata/{fields}`	#查看指定field的内存使用情况,里面传field属性对应的值
-`/_cat/nodeattrs`			#查看单节点的自定义属性
-`/_cat/repositories`		#输出集群中注册快照存储库
-`/_cat/templates`			#输出当前正在存在的模板信息
+1. `/_cat/allocation`      	#查看单节点的shard分配整体情况
+2. `/_cat/shards`          	#查看各shard的详细情况
+3. `/_cat/shards/{index}`  	#查看指定分片的详细情况
+4. `/_cat/master`          	#查看master节点信息
+5. `/_cat/nodes`           	#查看所有节点信息
+6. `/_cat/indices`         	#查看集群中所有index的详细信息
+7. `/_cat/indices/{index}` 	#查看集群中指定index的详细信息
+8. `/_cat/segments`        	#查看各index的segment详细信息,包括segment名, 所属shard, 内存(磁盘)占用大小, 是否刷盘
+9. `/_cat/segments/{index}`	#查看指定index的segment详细信息
+10. `/_cat/count`           	#查看当前集群的doc数量
+11. `/_cat/count/{index}`   	#查看指定索引的doc数量
+12. `/_cat/recovery`        	#查看集群内每个shard的recovery过程.调整replica。
+13. `/_cat/recovery/{index}`	#查看指定索引shard的recovery过程
+14. `/_cat/health`          	#查看集群当前状态：红、黄、绿
+15. `/_cat/pending_tasks`   	#查看当前集群的pending task
+16. `/_cat/aliases`         	#查看集群中所有alias信息,路由配置等
+17. `/_cat/aliases/{alias}` 	#查看指定索引的alias信息
+18. `/_cat/thread_pool`     	#查看集群各节点内部不同类型的threadpool的统计信息,
+19. `/_cat/plugins`         	#查看集群各个节点上的plugin信息
+20. `/_cat/fielddata`       	#查看当前集群各个节点的fielddata内存使用情况
+21. `/_cat/fielddata/{fields}`	#查看指定field的内存使用情况,里面传field属性对应的值
+22. `/_cat/nodeattrs`			#查看单节点的自定义属性
+23. `/_cat/repositories`		#输出集群中注册快照存储库
+24. `/_cat/templates`			#输出当前正在存在的模板信息
 
 #### 健康值状态
 
@@ -322,16 +322,16 @@ http://192.168.21.123:9200/_cluster/health
 
 ## 如何提高ES分布式系统的可用性及性能最大化
 
-1. 每台节点的Shard数量越少，每个shard分配的CPU、内存和IO资源越多，单个Shard的性能越好，当一台机器一个Shard时，单个Shard性能最好
+1. 每台节点的`shard`数量越少，每个`shard`分配的CPU、内存和IO资源越多，单个`shard`的性能越好，当一台机器一个`shard`时，单个`shard`性能最好
 2. 稳定的`Master节点`对于集群的健康非常重要！理论上讲，应该尽可能的减轻`Master节点`的压力，分片数量越多，`Master节点`维护管理`shard`的任务越重，并且节点可能就要承担更多的数据转发任务，可增加`仅协调节点`来缓解`Master节点`和`Data节点`的压力，但是在集群中添加过多的`仅协调节点`会增加整个集群的负担，因为选择的主节点必须等待每个节点的集群状态更新确认。
 3. 反过来说，如果相同资源分配相同的前提下，`shard`数量越少，单个`shard`的体积越大，查询性能越低，速度越慢，这个取舍应根据实际集群状况和结合应用场景等因素综合考虑
 4. `data节点`和`Master节点`一定要分开，集群规模越大，这样做的意义也就越大
-5. `data节点`处理与数据相关的操作，例如CRUD，搜索和聚合。这些操作是`I/O`，内存和CPU密集型的，所以他们需要更高配置的服务器以及更高的带宽，并且集群的性能冗余非常重要
+5. `data节点`处理与数据相关的操作，例如`CRUD`，搜索和聚合。这些操作是`I/O`，内存和`CPU`密集型的，所以他们需要更高配置的服务器以及更高的带宽，并且集群的性能冗余非常重要
 6. 由于`仅投票节`不参与`Master`竞选，所以和真正的`Master`节点相比，它需要的内存和CPU较少。但是，所有`候选节点`以及`仅投票节点`都可能是`数据节点`，所以他们都需要快速稳定低延迟的网络
 7. 高可用性（HA）群集至少需要三个主节点，其中`至少两个不是仅投票节点`。即使其中一个节点发生故障，这样的群集也将能够选举一个主节点。生产环境最好设置3台仅Master候选节点（node.master = true	 node.data = true）
 8. 为确保集群仍然可用，集群不能同时停止投票配置中的一半或更多节点。只要有一半以上的投票节点可用，集群仍可以正常工作。这意味着，如果存在三个或四个主节点合格的节点，则集群可以容忍其中一个节点不可用。如果有两个或更少的主机资格节点，则它们必须都保持可用
 
-## 简单CURD：
+## 简单CURD
 
 ### 创建索引
 
