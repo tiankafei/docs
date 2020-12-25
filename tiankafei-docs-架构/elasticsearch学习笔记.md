@@ -633,5 +633,227 @@ GET /_analyze
 }
 ```
 
+### 11. match_phrase：短语搜索，和全文检索相反
 
+```http
+GET /product/_search
+{
+  "query": {
+    "match_phrase": {
+      "name": "nfc phone"
+    }
+  }
+}
+```
+
+### 12. 查询过滤
+
+1. `bool`：可以`组合多个查询条件`，`bool`查询也是采用`more_matches_is_better`的机制，因此满足`must`和`should`子句的文档将会合并起来计算分值
+2. `must`：`必须满足`（子查询必须出现在匹配的文档中，并将有助于得分）
+3. `should`：`可能满足` `or`（子查询可能会出现在匹配的文档中）
+4. `must_not`：`必须不满足` `不计算相关度分数` `not`（子查询不得出现在匹配的文档中，子句在过滤器上下文中执行，这意味着计分被忽略，并且子句被视为用于缓存）
+5. `filter`：`过滤器` `不计算相关度分数`，`cache`（子查询必须出现在匹配的文档中，但是不像`must`查询的分数将忽略。`filter`子句在`filter`上下文中执行，这意味着计分被忽略，并且子句被考虑用于缓存）
+6. `minimum_should_match`：参数指定`should`返回的文档必须匹配的子句的数量或百分比。如果`bool`查询包含至少一个`should`子句，而没有`must`或`filter`子句，则默认值为1。否则，默认值为0
+
+#### 1. bool单条件查询
+
+>首先筛选`name`包含`xiaomi phone`并且价格大于1999的数据（不排序），然后搜索`name`包含`xiaomi`and `desc` 包含`shouji`
+
+```http
+GET /product/_search
+{
+  "query": {
+    "bool":{
+      "must": [
+        {"match": { "name": "xiaomi"}},
+        {"match": {"desc": "shouji"}}
+      ],
+      "filter": [
+        {"match_phrase":{"name":"xiaomi phone"}},
+        {"range": {
+          "price": {
+            "gt": 1999
+          }
+        }}
+      ]
+    }
+  }
+}
+```
+
+#### 2. bool多条件
+
+> name包含xiaomi 不包含erji 描述里包不包含nfc都可以，价钱要大于等于4999
+
+```http
+GET /product/_search
+{
+  "query": {
+    "bool": {
+      # name中必须包含"xiaomi"
+      "must": [
+        {
+          "match": {"name": "xiaomi"}
+        }
+      ],
+      # name中必须不能包含"erji"
+      "must_not": [
+        {
+          "match": {"name": "erji"}
+        }
+      ],
+      # should中至少满足0个条件，参见下面的 minimum_should_match 的解释
+      "should": [
+        {
+          "match": {"desc": "nfc"}
+        }
+      ],
+      # 筛选价格大于4999的doc
+      "filter": [
+        {
+          "range": {
+            "price": {"gt": 4999}
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+#### 3. minimum_should_match的嵌套查询
+
+```http
+GET /product/_search
+{
+  "query": {
+    "bool":{
+      "must": [
+        {"match": { "name": "nfc"}}
+      ],
+      "should": [
+        {"range": {
+          "price": {"gt":1999}
+        }},
+         {"range": {
+          "price": {"gt":3999}
+        }}
+      ],
+      "minimum_should_match": 1
+    }
+  }
+}
+# 
+GET /product/_search
+{
+  "query": {
+    "bool": {
+      "filter": {
+        "bool": {
+          "should": [
+            { "range": {"price": {"gt": 1999}}},
+            { "range": {"price": {"gt": 3999}}}
+          ],
+          "must": [
+            { "match": {"name": "nfc"}}
+          ]
+        }
+      }
+    }
+  }
+}
+```
+
+### 13. Compound queries组合查询
+
+> 想要一台带`NFC`功能的 或者 小米的手机 但是不要耳机
+
+```sql
+SELECT * from product where (`name` like "%xiaomi%" or `name` like '%nfc%') AND `name` not LIKE '%erji%'
+```
+
+```http
+GET /product/_search
+{
+  "query": {
+    "constant_score":{
+      "filter": {
+        "bool": {
+          "should":[
+            {"term":{"name":"xiaomi"}},
+            {"term":{"name":"nfc"}}
+            ],
+          "must_not":[
+            {"term":{"name":"erji"}}
+            ]
+        }
+      },
+      "boost": 1.2
+    }
+  }
+}
+```
+
+> 搜索一台xiaomi nfc phone或者一台满足 是一台手机 并且 价格小于等于2999
+
+```sql
+SELECT * FROM product WHERE NAME LIKE '%xiaomi nfc phone%' OR (NAME LIKE '%phone%' AND price > 399 AND price <=999);
+```
+
+```http
+GET /product/_search
+{
+  "query": {
+    "constant_score": {
+      "filter": { 
+        "bool":{
+          "should":[
+            {
+              "match_phrase": {
+                "name":"xiaomi nfc phone"
+              }
+            },
+            {
+              "bool":{
+                "must":[
+                  {"term":{"name":"phone"}},
+                  {"range":{"price":{"lte":"2999"}}}
+                  ]
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
+```
+
+### 14. Highlight search高亮查询
+
+```http
+GET /product/_search
+{
+    "query" : {
+        "match_phrase" : {
+            "name" : "nfc phone"
+        }
+    },
+    "highlight":{
+      "fields":{
+         "name":{}
+      }
+    }
+}
+```
+
+### 15. Deep paging
+
+
+
+### 16. Scroll search
+
+
+
+### 17. filter缓存原理
 
