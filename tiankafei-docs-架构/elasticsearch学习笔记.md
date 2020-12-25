@@ -331,6 +331,10 @@ http://192.168.21.123:9200/_cluster/health
 7. 高可用性（HA）群集至少需要三个主节点，其中`至少两个不是仅投票节点`。即使其中一个节点发生故障，这样的群集也将能够选举一个主节点。生产环境最好设置3台仅Master候选节点（node.master = true	 node.data = true）
 8. 为确保集群仍然可用，集群不能同时停止投票配置中的一半或更多节点。只要有一半以上的投票节点可用，集群仍可以正常工作。这意味着，如果存在三个或四个主节点合格的节点，则集群可以容忍其中一个节点不可用。如果有两个或更少的主机资格节点，则它们必须都保持可用
 
+## Master选举流程
+
+### findMaster
+
 ## 简单CURD
 
 ### 创建索引
@@ -475,6 +479,158 @@ POST /product/_doc/1/_update
 DELETE /{indexName}/_doc/{id}
 # demo
 DELETE /product/_doc/1
+```
+
+## ES 常用查询
+
+### 1. search timeout
+
+1. 设置：默认没有`timeout`，如果设置了`timeout`，那么会执行`timeout`机制
+2. `timeout`机制：假设用户查询结果有1W条数据，但是需要10s才能查询完毕，但是用户设置了1s的`timeout`，那么不管当前一共查询到了多少数据，都会在1s后停止查询，并返回当前数据
+3. 用法：GET /product/_search?timeout=1s/ms/m
+
+### 2. query_string
+
+1. 查询所有：GET /product/_search
+2. 带参数：GET /product/_search?q=name:xiaomi
+3. 分页+排序：GET /product/_search?from=0&size=2&sort=price:asc
+
+### 3. match_all：匹配所有
+
+```http
+GET /product/_search
+{
+  "query":{
+    "match_all": {}
+  }
+}
+```
+
+### 4. match：name中包含“nfc”
+
+```http
+GET /product/_search
+{
+  "query": {
+    "match": {
+      "name": "nfc"
+    }
+  }
+}
+```
+
+### 5. sort：按照加个倒序排序
+
+```http
+GET /product/_search
+{
+  "query": {
+    "multi_match": {
+      "query": "nfc",
+      "fields": ["name","desc"]
+    }
+  },
+  "sort": [
+    {
+      "price": "desc"
+    }
+  ]
+}
+```
+
+### 6. multi_match：根据多个字段查询一个关键词
+
+> name和desc中包含“nfc”
+
+```http
+GET /product/_search
+{
+  "query": {
+    "multi_match": {
+      "query": "nfc",
+      "fields": ["name","desc"]
+    }
+  },
+  "sort": [
+    {
+      "price": "desc"
+    }
+  ]
+}
+```
+
+### 7. _source：元数据，想要查询多个字段
+
+> ① 例子中为只查询“name”和“price”字段。
+
+```http
+GET /product/_search
+{
+  "query":{
+    "match": {
+      "name": "nfc"
+    }
+  },
+  "_source": ["name","price"]
+}
+```
+
+### 8. 分页：查询第一页（每页两条数据）
+
+```http
+GET /product/_search
+{
+  "query":{
+    "match_all": {}
+  },
+  "sort": [
+    {
+      "price": "asc"
+    }
+  ], 
+  "from": 0,
+  "size": 2
+}
+```
+
+### 9. term：不会被分词
+
+```http
+GET /product/_search
+{
+  "query": {
+    "term": {
+      "name": "nfc"
+    }
+  }
+}
+GET /product/_search
+{
+  "query": {
+    "term": {
+      "name": "nfc phone" 这里因为没有分词，所以查询没有结果
+    }
+  }
+}
+```
+
+### 10. 全文检索
+
+```http
+GET /product/_search
+{
+  "query": {
+    "match": {
+      "name": "xiaomi nfc zhineng phone"
+    }
+  }
+}
+#验证分词
+GET /_analyze 
+{
+  "analyzer": "standard",
+  "text":"xiaomi nfc zhineng phone"
+}
 ```
 
 
