@@ -593,7 +593,9 @@ GET /product/_search
 }
 ```
 
-### 9. term：不会被分词
+### 9. 全文检索：term：不会被分词
+
+> 查询不会被分词，eq相等匹配倒排索引；文档内容会被分词，相当于eq的是倒排索引
 
 ```http
 GET /product/_search
@@ -614,7 +616,7 @@ GET /product/_search
 }
 ```
 
-### 10. 全文检索
+### 10. 全文检索：match：会被分词
 
 ```http
 GET /product/_search
@@ -633,7 +635,7 @@ GET /_analyze
 }
 ```
 
-### 11. match_phrase：短语搜索，和全文检索相反
+### 11. 短语搜索：match_phrase：和全文检索相反
 
 ```http
 GET /product/_search
@@ -652,7 +654,7 @@ GET /product/_search
 2. `must`：`必须满足`（子查询必须出现在匹配的文档中，并将有助于得分）
 3. `should`：`可能满足` `or`（子查询可能会出现在匹配的文档中）
 4. `must_not`：`必须不满足` `不计算相关度分数` `not`（子查询不得出现在匹配的文档中，子句在过滤器上下文中执行，这意味着计分被忽略，并且子句被视为用于缓存）
-5. `filter`：`过滤器` `不计算相关度分数`，`cache`（子查询必须出现在匹配的文档中，但是不像`must`查询的分数将忽略。`filter`子句在`filter`上下文中执行，这意味着计分被忽略，并且子句被考虑用于缓存）
+5. `filter`：`过滤器` `不计算相关度分数`，`cache`（子查询必须出现在匹配的文档中，但是不像`must`查询的分数将忽略。`filter`子句在`filter`上下文中优先执行，这意味着计分被忽略，并且子句被考虑用于缓存）
 6. `minimum_should_match`：参数指定`should`返回的文档必须匹配的子句的数量或百分比。如果`bool`查询包含至少一个`should`子句，而没有`must`或`filter`子句，则默认值为1。否则，默认值为0
 
 #### 1. bool单条件查询
@@ -762,6 +764,56 @@ GET /product/_search
     }
   }
 }
+```
+
+> 1. 当`bool`处在`query`上下文中时，如果`must`或者`filter`匹配了`doc`，那么`should`即便一条都不满足也可以召回`doc`
+> 2. 当`bool`处在父`bool`的`filter`上下文中时 或者 `bool`处在`query`上下文且没有`must`/`filter`子句的时候，`should`至少匹配1个才能召回`doc`
+>
+> 如果需要类似这种查询：where name='nfc phone' and (price='2999' or desc='shouji zhong de hongzhaji')，就有2种做法：
+
+```http
+# 走嵌套bool，让should进入filter上下文：
+GET /product/_search
+{
+  "query": {
+    "bool": {
+      "filter": [
+        [
+          {"match_phrase": {"name": "nfc phone"}},
+          {"term": {"name": "nfc"}}
+        ],
+        {
+          "bool": {
+            "should": [
+              { "match_phrase": {"price": "2999"}},
+              { "match_phrase": {"desc": "shouji zhong de hongzhaji"}}
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
+# 走单bool，query上下文，需要显式指定minimum_should_match=1
+GET /product/_search
+{
+  "query": {
+    "bool": {
+      "filter": [
+        [
+          {"match_phrase": {"name": "nfc phone"}},
+          {"term": {"name": "nfc"}}
+        ]
+      ],
+      "should": [
+        { "match_phrase": {"price": "2999"}},
+        { "match_phrase": {"desc": "shouji zhong de hongzhaji"}}
+      ],
+      "minimum_should_match": 1
+    }
+  }
+}
+# 其实作为一个可扩展的查询接口，一般来说嵌套bool表达力更丰富，扩展性更好，所以不建议用第二种方式开发业务
 ```
 
 ### 13. Compound queries组合查询
