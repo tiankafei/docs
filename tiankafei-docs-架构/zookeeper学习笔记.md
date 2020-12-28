@@ -37,7 +37,7 @@ zookeeper可以当作集群使用，很少会使用单实例。集群的两种�
 
 zookeeper是主从复制集群，每个节点的数据是完全一样的。写（增删改）只能发生在leader上，查可以发生在所有的节点上。主是单点，依然会存在单点的问题；
 
-![zookeeper集群](/images\zookeeper集群.png)
+![zookeeper集群](/images/zookeeper集群.png)
 
 ### 数据可靠性
 
@@ -55,15 +55,15 @@ https://www.douban.com/note/208430424/
 
 ​		好，现在议会开始运作，所有议员一开始记事本上面记录的编号都是0。有一个议员发了一个提议：将电费设定为1元/度。他首先看了一下记事本，嗯，当前提议编号是0，那么我的这个提议的编号就是1，于是他给所有议员发消息：1号提议，设定电费1元/度。其他议员收到消息以后查了一下记事本，哦，当前提议编号是0，这个提议可接受，于是他记录下这个提议并回复：我接受你的1号提议，同时他在记事本上记录：当前提议编号为1。发起提议的议员收到了超过半数的回复，立即给所有人发通知：1号提议生效！收到的议员会修改他的记事本，将1好提议由记录改成正式的法令，当有人问他电费为多少时，他会查看法令并告诉对方：1元/度。
 
-![paxos协议过程](\images\paxos协议过程.png)
+![paxos协议过程](/images/paxos协议过程.png)
 
 ​		现在看冲突的解决：假设总共有三个议员S1-S3，S1和S2同时发起了一个提议:1号提议，设定电费。S1想设为1元/度, S2想设为2元/度。结果S3先收到了S1的提议，于是他做了和前面同样的操作。紧接着他又收到了S2的提议，结果他一查记事本，咦，这个提议的编号小于等于我的当前编号1，于是他拒绝了这个提议：对不起，这个提议先前提过了。于是S2的提议被拒绝，S1正式发布了提议: 1号提议生效。S2向S1或者S3打听并更新了1号法令的内容，然后他可以选择继续发起2号提议。
 
-![paxos协议解决冲突过程](\images\paxos协议解决冲突过程.png)
+![paxos协议解决冲突过程](/images/paxos协议解决冲突过程.png)
 
 ### zab协议：原子广播协议
 
-![zookeeper的ZAB协议](\images\zookeeper的ZAB协议.png)
+![zookeeper的ZAB协议](/images/zookeeper的ZAB协议.png)
 
 好，我觉得Paxos的精华就这么多内容。现在让我们来对号入座，看看在ZK Server里面Paxos是如何得以贯彻实施的。
 
@@ -95,11 +95,11 @@ https://www.douban.com/note/208430424/
 
 ### watch
 
-![zookeeper的watch](\images\zookeeper的watch.png)
+![zookeeper的watch](/images/zookeeper的watch.png)
 
 客户端先向ZooKeeper服务端成功注册想要监听的节点状态，同时客户端本地会存储该监听器相关的信息在WatchManager中，当ZooKeeper服务端监听的数据状态发生变化时，ZooKeeper就会主动通知发送相应事件信息给相关会话客户端，客户端就会在本地响应式的回调相关Watcher的Handler。
 
-![zookeeper-watch](\images\zookeeper-watch.png)
+![zookeeper-watch](/images/zookeeper-watch.png)
 
 #### ZooKeeper的Watch特性
 
@@ -141,7 +141,7 @@ https://www.douban.com/note/208430424/
 
 ZooKeeper吞吐量，随读/写比的变化而定。在读取数量超过写入次数的应用程序中，由于写入涉及同步所有服务器的状态，因此该性能特别高。（对于协调服务来说，读取次数多于写入次数）。ZooKeeper应用程序可在数千台计算机上运行，并且在读取比写入更常见的情况下，其性能最佳，比率约为10：1。
 
-![ZooKeeper吞吐量-随读-写比的变化而定](/images\ZooKeeper吞吐量-随读-写比的变化而定.jpg)
+![ZooKeeper吞吐量-随读-写比的变化而定](/images/ZooKeeper吞吐量-随读-写比的变化而定.jpg)
 
 横轴：读取所占的比例，纵轴：每秒的查询量。当全是读取的时候，就算是3个节点的集群也能喉住80000+的请求数量。
 
@@ -153,7 +153,7 @@ ZooKeeper吞吐量，随读/写比的变化而定。在读取数量超过写入�
 4. 两个追随者的失败和恢复
 5. 另一个领导者的失败
 
-![zookeeper存在错误时的可靠性](/images\zookeeper存在错误时的可靠性.jpg)
+![zookeeper存在错误时的可靠性](/images/zookeeper存在错误时的可靠性.jpg)
 
 1. 追随者失败并迅速恢复，则ZooKeeper能够在失败的情况下维持高吞吐量。
 2. 领导者选举算法允许 leader 恢复得足够快，ZooKeeper只需不到200毫秒即可选出新的领导者。
@@ -163,7 +163,7 @@ ZooKeeper吞吐量，随读/写比的变化而定。在读取数量超过写入�
 
 Zookeeper 的数据结构类似于文件系统，不同的是 zookeeper 的每个节点都可以存储少量的数据，最大支持存储1M的数据。zookeeper数据保存在内存中，可以实现高吞吐量和低延迟数量。
 
-![zookeeper数据结构](/images\zookeeper数据结构.jpg)
+![zookeeper数据结构](/images/zookeeper数据结构.jpg)
 
 - 目录树结构
   - 持久节点（PERSISTENT）：节点创建后，一直存在，直到主动删除了该节点。
@@ -221,7 +221,7 @@ ZooKeeper非常快速且非常简单。但是，由于其目标是作为构建�
 >
 > 运行一段时间时候，再启动时leader的选择逻辑时，先看哪些节点的数据最完整（看事务id的最大值进行比较），如果都比较完整，再看server.n中n的最大值，是leader。
 
-![zookeeper建立连接的过程](/images\zookeeper建立连接的过程.png)
+![zookeeper建立连接的过程](/images/zookeeper建立连接的过程.png)
 
 ## 角色
 
