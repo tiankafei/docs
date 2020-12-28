@@ -957,7 +957,7 @@ GET /product/_search
 
 正确的做法是每个 `shard` 把`0`到`999`条数据全部搜索出来（按排序顺序），然后全部返回给 `coordinate node`，由 `coordinate node` 按 `_score` 分数排序后，取出第`100`页的`10`条数据，然后返回给客户端
 
-![elasticsearch-deep-paging](\images\elasticsearch-deep-paging.png)
+![elasticsearch-deep-paging](/images/elasticsearch-deep-paging.png)
 
 #### 3. 性能问题
 
