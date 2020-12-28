@@ -745,7 +745,7 @@ GET /product/_search
     }
   }
 }
-# 
+# demo
 GET /product/_search
 {
   "query": {
@@ -814,6 +814,32 @@ GET /product/_search
   }
 }
 # 其实作为一个可扩展的查询接口，一般来说嵌套bool表达力更丰富，扩展性更好，所以不建议用第二种方式开发业务
+```
+
+#### 4. constant_score：不计算得分
+
+> 当我们不关心检索词频率`TF`（`Term Frequency`）对搜索结果排序的影响时，可以使用`constant_score`将查询语句`query`或者过滤语句`filter`包装起来
+
+```http
+GET /product/_search
+{
+  "query": {
+    "constant_score":{
+      "filter": {
+        "bool": {
+          "should":[
+            {"term":{"name":"xiaomi"}},
+            {"term":{"name":"nfc"}}
+            ],
+          "must_not":[
+            {"term":{"name":"erji"}}
+            ]
+        }
+      },
+      "boost": 1.2
+    }
+  }
+}
 ```
 
 ### 13. Compound queries组合查询
@@ -901,7 +927,47 @@ GET /product/_search
 
 ### 15. Deep paging
 
+#### 1. deep paging概念
 
+**查询的很深，比如一个索引有三个 `primary shard`，分别存储了`6000`条数据，我们要得到第`100`页的数据（每页`10`条），类似这种情况就叫`deep paging`**
+
+```http
+GET /product/_search
+{
+  "query":{
+    "match_all": {}
+  },
+  "sort": [
+    {
+      "price": "asc"
+    }
+  ], 
+  "from": 0,
+  "size": 2
+}
+```
+
+#### 2. 查询原理：如何得到第100页的10条数据？
+
+##### 错误的做法
+
+在每个 `shard` 中搜索`990`到`999`这`10`条数据，然后用这`30`条数据排序，排序之后取`10`条数据就是要搜索的数据，这种做法是错的；因为3个 `shard` 中的数据的 `_score` 分数不一样，可能这某一个 `shard` 中第一条数据的 `_score` 分数比另一个 `shard` 中第`1000`条都高，所以在每个 `shard` 中搜索`990`到`999`这`10`条数据然后排序的做法是不正确的。
+
+##### 正确的做法
+
+正确的做法是每个 `shard` 把`0`到`999`条数据全部搜索出来（按排序顺序），然后全部返回给 `coordinate node`，由 `coordinate node` 按 `_score` 分数排序后，取出第`100`页的`10`条数据，然后返回给客户端
+
+![elasticsearch-deep-paging](\images\elasticsearch-deep-paging.png)
+
+#### 3. 性能问题
+
+1. 消耗网络带宽，因为所搜过深的话，各 `shard` 要把数据传递给 `coordinate node`，这个过程是有大量数据传递的，消耗网络
+2. 消耗内存，各 `shard` 要把数据传送给 `coordinate node`，这个传递回来的数据，是被 `coordinate node` 保存在内存中的，这样会大量消耗内存
+3. 消耗`cup`，`coordinate node` 要把传回来的数据进行排序，这个排序过程很消耗`cpu`
+
+#### 4. 结论
+
+<font color="red">**鉴于deep paging的性能问题，所有应尽量减少使用**</font>
 
 ### 16. Scroll search
 
