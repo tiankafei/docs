@@ -1135,6 +1135,39 @@ GET /product/_mappings
 1. exact value 精确匹配：在倒排索引过程中，分词器会将`field`作为一个整体创建到索引中
 2. full text全文检索： 分词、近义词同义词、混淆词、大小写、词性、过滤、时态转换等
 
+```http
+# 搜索所有字段包含de的doc
+GET /product/_search?q=de
+# 搜索name字段包含de的doc
+GET /product/_search?q=name:de
+# name.keyword 不会被分词，有点儿类似 match_phrase 短语搜索，eq文档doc的属性
+GET /product/_search
+{
+  "query": {
+    "match": {
+      "name.keyword": "xiaomi phone"
+    }
+  }
+}
+GET /product/_search
+{
+  "query": {
+    "match_phrase": {
+      "name": "xiaomi phone"
+    }
+  }
+}
+# 全文检索可能会搜索出多条结果 eq倒排索引
+GET /product/_search
+{
+  "query": {
+    "match": {
+      "name": "xiaomi phone"
+    }
+  }
+}
+```
+
 ### 5. ES数据类型
 
 #### 1. 核心类型
