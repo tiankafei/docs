@@ -1315,7 +1315,7 @@ PUT /product
 
 11. `fields`：给`field`创建多字段，用于不同目的（全文检索或者聚合分析排序）
 
-12. format：格式化
+12. `format`：格式化
 
     ```
     "date": {
