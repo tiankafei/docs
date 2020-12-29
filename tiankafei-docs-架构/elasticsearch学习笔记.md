@@ -1244,7 +1244,8 @@ GET /product/_search
 ### 6. 手工创建Mapping
 
 ```http
-PUT /product
+# 格式
+PUT /{indexName}
 {
   "mappings": {
     "properties": {
@@ -1254,6 +1255,39 @@ PUT /product
       }
   }
 }
+# demo
+PUT /product3
+{
+  "mappings": {
+    "properties": {
+      "date": {
+        "type": "text"
+      },
+      "desc": {
+        "type": "text",
+        "analyzer": "english"
+      },
+      "name": {
+        "type": "text",
+        "index": "false"
+      },
+      "price": {
+        "type": "long"
+      },
+      "tags": {
+        "type": "text",
+        "index": "true"
+      },
+      "parts": {
+        "type": "object"
+      },
+      "partlist": {
+        "type": "nested"
+      }
+    }
+  }
+}
+GET /product3/_mapping
 ```
 
 ### 7. Mapping parameters
