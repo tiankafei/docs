@@ -1512,3 +1512,132 @@ GET /product3/_search
 
 27. `term_vector`：
 
+## 聚合查询
+
+### 1. bucket 和 metirc == group by 
+
+| bucket（item） | metirc（count） |
+| -------------- | --------------- |
+| 北京           | 100             |
+| 天津           | 99              |
+| 河北           | 98              |
+
+### 2. 语法
+
+```
+"aggs": {
+	code...
+}
+```
+
+### 3. 以`tag`维度每个产品的数量，即每个标签
+
+```http
+GET /product/_search
+{
+  "aggs": {
+    "tag_agg_group": {
+      "terms": {
+        "field": "tags.keyword"
+      }
+    }
+  },
+  # 不加这个会把原始的doc也查出来
+  "size": 0
+}
+```
+
+### 4. 在 3 的基础上增加：价格大于1999的数据
+
+```http
+GET /product/_search
+{
+  "query": {
+    "bool": {
+      "filter": [
+        {
+          "range": {"price": {"gt": 1999}}
+        }
+      ]
+    }
+  },
+  "aggs": {
+    "tag_agg_group": {
+      "terms": {
+        "field": "tags.keyword"
+      }
+    }
+  },
+  # 不加这个会把原始的doc也查出来
+  "size": 0
+}
+```
+
+### 5. 价格大于1999的每个tag产品的平均价格
+
+```http
+GET /product/_search
+{
+  "aggs": {
+    "tag_agg_avg": {
+      "terms": {
+        "field": "tags.keyword",
+        "order": {
+          "avg_price": "desc"
+        }
+      },
+      "aggs": {
+        "avg_price": {
+          "avg": {
+            "field": "price"
+          }
+        }
+      }
+    }
+  },
+  # 不加这个会把原始的doc也查出来
+  "size":0
+}
+```
+
+### 6. 自定义聚合
+
+**按照千元机：1000以下  中端机：2000-3000 高端机：3000以上分组聚合，分别计算数量**
+
+```http
+GET /product/_search
+{
+  "aggs": {
+    "tag_agg_group": {
+      "range": {
+        "field": "price",
+        "ranges": [
+          {
+            "from": 100,
+            "to": 1000
+          },
+          {
+            "from": 1000,
+            "to": 3000
+          },
+          {
+            "from": 3000
+          }
+        ]
+      },
+      "aggs": {
+        "price_agg": {
+          "avg": {
+            "field": "price"
+          }
+        }
+      }
+    }
+  },
+  # 不加这个会把原始的doc也查出来
+  "size": 0
+}
+```
+
+
+
