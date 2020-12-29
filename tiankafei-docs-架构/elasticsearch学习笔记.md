@@ -1255,7 +1255,7 @@ PUT /{indexName}
       }
   }
 }
-# demo
+# 手工创建 mappings
 PUT /product3
 {
   "mappings": {
@@ -1287,7 +1287,48 @@ PUT /product3
     }
   }
 }
+# 查看 mapping
 GET /product3/_mapping
+# 插入数据
+PUT /product3/_doc/1
+{
+  "name": "xiaomi phone",
+  "desc": "shouji zhong de zhandouji",
+  "count": 123456,
+  "price": 3999,
+  "date": "2020-05-20",
+  "isdel": false,
+  "tags": [
+    "xingjiabi",
+    "fashao",
+    "buka"
+  ],
+  "parts": {
+    "name": "adapter",
+    "desc": "5V 2A"
+  },
+  "partlist": [
+    {
+      "name": "adapter",
+      "desc": "5V 2A"
+    },
+    {
+      "name": "USB-C",
+      "desc": "5V 2A 1.5m"
+    },
+    {
+      "name": "erji",
+      "desc": "boom"
+    }
+  ]
+}
+# 查看数据
+GET /product3/_search
+{
+  "query": {
+    "match_all": {}
+  }
+}
 ```
 
 ### 7. Mapping parameters
