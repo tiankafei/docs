@@ -1123,8 +1123,8 @@ GET /product/_mappings
 ### 3. 动态mapping
 
 1. Elasticsearch：text / keyword
-2. 123456             =>	long			？为什么不是integer
-3. 123.123            =>	double
+2. 123456             =>	long			？为什么不是`integer`
+3. 123.123            =>	double        实际是`float`类型
 4. true false          =>	boolean
 5. 2020-05-20       =>	date
 
