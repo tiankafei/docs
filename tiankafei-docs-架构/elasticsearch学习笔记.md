@@ -1182,7 +1182,7 @@ GET /product/_mappings
 #### 4. 特有类型
 
 1. IP地址：ip 用于IPv4和IPv6地址
-2. [Completion](#completion-suggester)：提供自动完成建议
+2. Completion：提供自动完成建议
 3. Tocken_count：计算字符串中令牌的数量
 4. [Murmur3](https://www.elastic.co/guide/en/elasticsearch/plugins/7.7/mapper-murmur3.html)：在索引时计算值的哈希并将其存储在索引中
 5. [Annotated-text](https://www.elastic.co/guide/en/elasticsearch/plugins/7.7/mapper-annotated-text.html)：索引包含特殊标记的文本（通常用于标识命名实体）
