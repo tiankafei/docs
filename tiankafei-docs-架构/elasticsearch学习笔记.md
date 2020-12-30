@@ -1386,7 +1386,7 @@ GET /product3/_search
 
    > <font color="red">**注意：enable只能在最顶层，并且type为object的时候设置才生效。**</font>
 
-10. `fielddata`：查询时`内存`数据结构，在首次用当前字段聚合、排序或者在脚本中使用时，需要字段为`fielddata`数据结构，并且创建倒排索引保存到堆中
+10. `fielddata`：查询时`内存`数据结构，在首次用当前字段聚合、排序或者在脚本中使用时，需要字段为`fielddata`数据结构，并且创建正排索引`doc_values`并保存到`JVM`的堆中，一定要慎用。
 
 11. `fields`：给`field`创建多字段，用于不同目的（全文检索或者聚合分析排序）
 
@@ -1639,5 +1639,155 @@ GET /product/_search
 }
 ```
 
+### 7. mget：批量查询
 
+```http
+# 语法
+GET /_mget
+GET /<index>/_mget
+```
+
+```http
+# demo
+# 批量查询不同索引的结果
+GET /_mget
+{
+  "docs": [
+    {
+      "_index": "product",
+      "_id": 2
+    },
+    {
+      "_index": "product",
+      "_id": 3
+    }
+  ]
+}
+# 批量查询同一个索引的不同ID
+#封装,把索引名(product提取出来)
+GET /product/_mget
+{
+  "docs": [
+    {
+      "_id": 2
+    },
+    {
+      "_id": 3
+    }
+  ]
+}
+GET /product/_mget
+{
+  "ids":[2,3]
+}
+#include包含哪些字段  exclude排除哪些字段
+GET /product/_mget
+{
+  "docs": [
+    {
+      "_id": 2,
+      "_source": false
+    },
+    {
+      "_id": 3,
+      "_source": [
+        "name",
+        "price"
+      ]
+    },
+    {
+      "_id": 4,
+      "_source": {
+        "include": [
+          "name"
+        ],
+        "exclude":[
+          "price"
+          ]
+      }
+    }
+  ]
+}
+```
+
+### 8. bulk：批量增删改
+
+```http
+# 语法格式
+POST /_bulk
+POST /<index>/_bulk
+{"action": {"metadata"}}
+{"data"}
+```
+
+1. **Operate：**
+2. `create`：如果`id`已经存在，则报错；不存在，则插入
+3. `delete`：删除（lazy delete原理）
+4. `index`：可以是创建，也可以是全量替换
+5. `update`：执行`partial update`（全量替换，部分替换）
+6. 这么做的好处是为了节省内存，普通的插入方式会在`es`内部序列化反序列化成一个个对象，采用`bulk`方式不需要序列化反序列化对象，从而节省了内存的开销
+
+```http
+#手动指定id和自动生成（正常方式）
+PUT /test_index/_doc/1/
+{
+  "field":"test"
+}
+PUT /test_index/_doc/1/_create
+{
+  "field":"test"
+}
+PUT /test_index/_create/1/
+{
+  "field":"test"
+}
+#自动生产id(guid)
+POST /test_index/_doc
+{
+  "field":"test"
+}
+# bulk方式操作数据
+POST /_bulk
+{"create":{"_index":"product2", "_id":"1", "retry_on_conflict":"3"}}
+{"name":"_buld create1"}
+{"create":{"_index":"product2", "_id":"12"}}
+{"name":"_buld create12"}
+{"delete":{"_index":"product2", "_id":"11"}}
+{"update":{"_index":"product2", "_id":"12"}}
+{"doc":{"name":"_buld create22"}}
+{"index":{"_index":"product2", "_id":"12"}}
+{"doc":{"name":"_buld create2222222"}}
+{"index":{"_index":"product2", "_id":"11"}}
+{"doc":{"name":"_buld create111"}}
+# retry_on_conflict：冲突重试 
+# index 存在则全量替换，不存在则创建
+# POST /_bulk?filter_path=items.*.error  只显示失败的结果
+```
+
+### 9. ES 并发冲突问题
+
+1. 悲观锁：各种情况，都加锁，读写锁、行级锁、表级锁。使用简单，但是并发能力很低
+2. 乐观锁：并发能力高，操作麻烦，每次`no-query`操作都需要比对`version`
+
+## ES底层原理
+
+### 图解正排索引和倒排索引
+
+![图解-正排索引VS倒排索引](/images/图解-正排索引VS倒排索引.jpg)
+
+> 如果使用倒排索引做聚合操作，会对倒排索引进行多次全表扫描，从而降低了查询效率
+
+### 正排索引`doc_values`和倒排索引的区别
+
+1. 倒排索引的优势在于查找包含某个项的文档，即用于搜索查询；相反正排索引的优势是确定哪些项是否存在单个文档里
+2. 倒排索引和正排索引均是在`index-time`时创建，保存再Lucene文件中（序列化到磁盘）
+3. `doc_values`使用非`JVM`内存，gc友好
+4. 不分词的`field`会在`index-time`时生成正排索引，聚合时直接使用正排索引，而分词的`field`在创建索引时是没有正排索引的，如果没有创建`doc_values`的字段需要做聚合查询时，`name`需要将`fielddata`打开，设置为true。此时会在执行查询的时候，动态在`JVM`的堆内存空间创建正排索引。
+
+### 正排索引`doc_values`和`fielddata`
+
+1. 与`doc_value`不同，当没有`doc_value`的字段需要聚合时，需要打开`fielddata`，然后临时在内存中建立正排索引，`fielddata`的构建和管理发生在`JVM Heap`中
+2. `fielddata`默认是不器用的，因为`text`的字段比较长，一般只做关键字分词和搜索，很少拿他来进行全文匹配、聚合、排序等操作
+3. `ES`采用了`circuit breaker`熔断机制避免`fielddata`一次性超过物理内存大小而导致内存溢出，如果触发熔断，查询会被终止并返回异常
+4. `fielddata`使用的是`JVM`内存，`doc_value`在内存不足时会静静的待在磁盘中，而当内存充足时，会缓存到内存里以提升性能
 
