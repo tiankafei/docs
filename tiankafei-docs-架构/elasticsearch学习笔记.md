@@ -1767,7 +1767,13 @@ POST /_bulk
 ### 9. ES 并发冲突问题
 
 1. 悲观锁：各种情况，都加锁，读写锁、行级锁、表级锁。使用简单，但是并发能力很低
+
 2. 乐观锁：并发能力高，操作麻烦，每次`no-query`操作都需要比对`version`
+
+   ```
+   ?version=2&&version_type=external
+   # `if_seq_no` and `if_primary_term`
+   ```
 
 ## ES底层原理
 
