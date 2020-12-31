@@ -1851,7 +1851,7 @@ POST product2/_update/15
 }
 ```
 
-### 3. 使用`script`执行插入更新操作
+### 4. 使用`script`执行插入更新操作
 
 ```http
 # upsert   smartison  update insert
@@ -1873,7 +1873,7 @@ POST product2/_update/15
 }
 ```
 
-### 4. 使用`script`执行 _bulk 操作
+### 5. 使用`script`执行 _bulk 操作
 
 ```http
 # 错误的实例，需要改写成下面的语句
@@ -1905,7 +1905,7 @@ POST _bulk
 
 ```
 
-### 5. `script`的其他语言支持
+### 6. `script`的其他语言支持
 
 1. GET查询 除了`painless`(默认) ES还支持：
 2. - `expression`(快速的自定义排名和排序) 
@@ -1927,7 +1927,7 @@ GET product2/_search
 }
 ```
 
-### 6. `script`脚本语言性能比较
+### 7. `script`脚本语言性能比较
 
 1. Elasticsearch首次执行脚本时，将对其进行编译并将编译后的版本存储在缓存中。编译过程比较消耗性能。
 2. 如果需要将变量传递到脚本中，则应以命名形式传递变量，`params`而不是将值硬编码到脚本本身中。例如，如果您希望能够将字段值乘以不同的乘数，请不要将乘数硬编码到脚本中
@@ -1974,7 +1974,7 @@ GET product2/_search
 #doc['price'] * num只编译一次而doc['price'] * 9 会随着数字改变而一直编译,ES默认每分钟支持15次编译
 ```
 
-### 7. `script`多脚本支持
+### 8. `script`多脚本支持
 
 ```http
 #例如 打8折价格
@@ -2047,7 +2047,7 @@ POST product2/_update/1
 }
 ```
 
-### 8. `Stored scripts`：`script`模板
+### 9. `Stored scripts`：`script`模板
 
 > 可以理解为`script`模板，缓存在集群的`cache`中，全局缓存；默认缓存大小是`100MB`，没有过期时间，可以手工设置过期时间`script.cache.expire`通过`script.cache.max_size`设置缓存大小，脚本最大`64MB`，通过`script.max_size_in_bytes`配置，有发生变更时重新编译。
 
@@ -2084,9 +2084,9 @@ GET product2/_search
 }
 ```
 
-### 9. `Dates`：日期的使用
+### 10. `Dates`：日期的使用
 
-> 官网Bug：日期字段公开为`ZonedDateTime`，因此它们支持诸如之类的方法`getYear`，`getDayOfWeek`或例如从历元开始到毫秒`getMillis`。要在脚本中使用它们，请省略`get`前缀并继续使用小写的方法名其余部分。例如，以下代码返回每个冰球运动员的出生年份`getYear()`：
+> 日期字段公开为`ZonedDateTime`，因此它们支持诸如之类的方法`getYear`，`getDayOfWeek`或例如从`1970年`开始到该时间的毫秒数`getMillis`。要在脚本中使用它们，请省略`get`前缀并首字母小写的驼峰标识。
 >
 > 1. getMonth()
 > 2. getDayOfMonth()
@@ -2099,7 +2099,7 @@ GET product2/_search
 
 ```http
 # 时间类型的使用
-GET product2/_search
+GET product2/_search/1
 {
   "script_fields": {
     "test_year": {
@@ -2110,3 +2110,78 @@ GET product2/_search
   }
 }
 ```
+
+### 11. `script`正则表达式的支持
+
+> 需要先启用配置：`script.painless.regex.enabled: true；会影响查询性能
+
+```http
+POST product2/_update/1
+{
+  "script": {
+    "lang": "painless",
+    "source": """
+      if (ctx._source.name =~ /[\s\S]*phone[\s\S]*/) {
+        ctx._source.name += "***|";
+      } else {
+        ctx.op = "noop";
+      }
+    """
+  }
+}
+#[0-9]{4}-[0-9]{2}-[0-9]{2}匹配出来的不一定是日期 比如  9999-99-99  但是日期一定能匹配上
+POST product2/_update/1
+{
+  "script": {
+    "lang": "painless",
+    "source": """
+      if (ctx._source.createtime ==~ /[0-9]{4}-[0-9]{2}-[0-9]{2}/) {
+        ctx._source.name += "|***";
+      } else {
+        ctx.op = "noop";
+      }
+    """
+  }
+}
+```
+
+### 12. 使用`script`进行聚合查询
+
+```http
+#统计所有小于1000商品tag的 数量 不考虑去重
+GET /product/_search
+GET /product/_search
+{
+  "query": {
+    "bool": {
+      "filter": [
+        {
+          "range": {
+            "price": {
+              "lt": 1000
+            }
+          }
+        }
+      ]
+    }
+  },
+  "aggs": {
+    "tag_agg_group": {
+      "sum": {
+        "script": {
+          "lang": "painless",
+          "source": """
+            int total = 0;
+            for (int i = 0; i < doc['tags.keyword'].length; i++) {
+               total++;
+            }
+            return total;
+          """
+        }
+      }
+    }
+  },
+  "size": 0
+}
+```
+
