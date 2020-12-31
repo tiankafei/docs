@@ -1797,3 +1797,316 @@ POST /_bulk
 3. `ES`采用了`circuit breaker`熔断机制避免`fielddata`一次性超过物理内存大小而导致内存溢出，如果触发熔断，查询会被终止并返回异常
 4. `fielddata`使用的是`JVM`内存，`doc_value`在内存不足时会静静的待在磁盘中，而当内存充足时，会缓存到内存里以提升性能
 
+## ES Scripting
+
+### 1. 使用`script`执行更新操作
+
+```http
+POST product2/_update/4
+{
+  "script": {
+    "source": "ctx._source.price-=1"
+  }
+}
+#可以简写
+POST product2/_update/4
+{
+  "script": "ctx._source.price-=1"
+}
+```
+
+### 2. 使用`script`执行脚本命令
+
+```http
+POST product2/_update/3
+{
+  "script": {
+    "lang": "painless",
+    "source": "ctx._source.tags.add('无线充电')"
+  }
+}
+#传参
+POST product2/_update/3
+{
+  "script": {
+    "lang": "painless",
+    "source": "ctx._source.tags.add(params.tag_name)",
+    "params": {
+      "tag_name": "无线充电"
+    }
+  }
+}
+```
+
+### 3. 使用`script`执行删除操作
+
+```http
+# delete
+POST product2/_update/15
+{
+  "script": {
+    "lang": "painless",
+    "source": "ctx.op='delete'"
+  }
+}
+```
+
+### 3. 使用`script`执行插入更新操作
+
+```http
+# upsert   smartison  update insert
+#如果数据存在,执行partial update操作,如果数据不存在,那么执行create操作
+GET /product2/_doc/15
+POST product2/_update/15
+{
+  "script": {
+    "source": "ctx._source.price += params.param1",
+    "lang": "painless",
+    "params": {
+      "param1": 100
+    }
+  },
+  "upsert": {
+    "name": "小米10",
+    "price": 1999
+  }
+}
+```
+
+### 4. 使用`script`执行 _bulk 操作
+
+```http
+# 错误的实例，需要改写成下面的语句
+POST _bulk
+{
+  "update":{
+    "_index":"product2",
+    "_id":"15",
+    "retry_on_conflict":3
+  }
+}
+{
+  "script": {
+    "source": "ctx._source.price += params.param1",
+    "lang": "painless",
+    "params": {
+      "param1": 100
+    }
+  },
+  "upsert": {
+    "name": "小米10",
+    "price": 1999
+  }
+}
+#改成_bulk批量操作呢
+POST _bulk
+{ "update" : { "_id" : "0", "_index" : "product2", "retry_on_conflict" : 3} }
+{ "script" : { "source": "ctx._source.price += params.param1", "lang" : "painless", "params" : {"param1" : 100}}, "upsert" : {"price" : 1999}}
+
+```
+
+### 5. `script`的其他语言支持
+
+1. GET查询 除了`painless`(默认) ES还支持：
+2. - `expression`(快速的自定义排名和排序) 
+   - `mustache`(范本) 
+   - `java`(专家API)
+
+```http
+#这些语言应用场景更窄,但是可能性能更好
+GET product2/_search
+{
+  "script_fields": {
+    "test_field": {
+      "script": {
+        "lang":   "expression",
+        "source": "doc['price']"
+      }
+    }
+  }
+}
+```
+
+### 6. `script`脚本语言性能比较
+
+1. Elasticsearch首次执行脚本时，将对其进行编译并将编译后的版本存储在缓存中。编译过程比较消耗性能。
+2. 如果需要将变量传递到脚本中，则应以命名形式传递变量，`params`而不是将值硬编码到脚本本身中。例如，如果您希望能够将字段值乘以不同的乘数，请不要将乘数硬编码到脚本中
+
+```http
+#看took消耗
+GET product2/_search
+{
+  "script_fields": {
+    "test_field": {
+      "script": {
+        "lang":   "expression",
+        "source": "doc['price'] * 9"
+      }
+    }
+  }
+}
+GET product2/_search
+{
+  "script_fields": {
+    "test_field": {
+      "script": {
+        "lang":   "painless",
+        "source": "doc['price'].value * 9"
+      }
+    }
+  }
+}
+#更换num的值 对比took消耗   
+GET product2/_search
+{
+  "script_fields": {
+    "test_field": {
+      "script": {
+        "lang":   "expression",
+        "source": "doc['price'] * num",
+        "params": {
+          "num": 6
+        }
+      }
+    }
+  }
+}
+#doc['price'] * num只编译一次而doc['price'] * 9 会随着数字改变而一直编译,ES默认每分钟支持15次编译
+```
+
+### 7. `script`多脚本支持
+
+```http
+#例如 打8折价格
+GET product2/_search
+{
+  "script_fields": {
+    "discount_price": {
+      "script": {
+        "lang": "painless",
+        "source": "doc['price'].value * params.discount",
+        "params": {
+          "discount": 0.8
+        }
+      }
+    }
+  }
+}
+# 原始价格 和 多个打折价格
+GET product2/_search
+{
+  "script_fields": {
+    "price": {
+      "script": {
+        "lang": "painless",
+        "source": "doc['price'].value"
+      }
+    },
+    "discount_price": {
+      "script": {
+        "lang": "painless",
+        "source": "[doc['price'].value * params.discount_8,doc['price'].value * params.discount_7,doc['price'].value * params.discount_6,doc['price'].value * params.discount_5]",
+        "params": {
+          "discount_8": 0.8,
+          "discount_7": 0.7,
+          "discount_6": 0.6,
+          "discount_5": 0.5
+        }
+      }
+    }
+  }
+}
+GET product2/_search
+{
+  "script_fields": {
+    "discount_price": {
+      "script": {
+        "lang": "painless",
+        "source": "doc.price.value * params.discount",
+        "params": {
+          "discount": 0.8
+        }
+      }
+    }
+  }
+}
+# 那么遇到复杂脚本，写很多行怎么办呢
+POST product2/_update/1
+{
+  "script": {
+    "lang": "painless",
+    "source": """
+      ctx._source.name += params.name;
+      ctx._source.price -= 1
+    """,
+    "params": {
+      "name": "无线充电",
+      "price": "1"
+    }
+  }
+}
+```
+
+### 8. `Stored scripts`：`script`模板
+
+> 可以理解为`script`模板，缓存在集群的`cache`中，全局缓存；默认缓存大小是`100MB`，没有过期时间，可以手工设置过期时间`script.cache.expire`通过`script.cache.max_size`设置缓存大小，脚本最大`64MB`，通过`script.max_size_in_bytes`配置，有发生变更时重新编译。
+
+<font color="red">**这里的`post`需要使用`doc`获取属性，因为这个最值是给`get`方法使用的**</font>
+
+```http
+# 格式
+# /_scripts/{id}  类似存储过程  计算折扣 作用域为整个集群
+# 增加 script 模板
+POST _scripts/calculate-discount
+{
+  "script": {
+    "lang": "painless",
+    "source": "doc['price'].value * params.discount"
+  }
+}
+# 查看 script 模板
+GET _scripts/calculate-discount
+# 删除 script 模板
+DELETE _scripts/calculate-discount
+# 使用 script 模板
+GET product2/_search
+{
+  "script_fields": {
+    "discount_price": {
+      "script": {
+        "id":"calculate-discount",
+        "params": {
+          "discount": 0.8
+        }
+      }
+    }
+  }
+}
+```
+
+### 9. `Dates`：日期的使用
+
+> 官网Bug：日期字段公开为`ZonedDateTime`，因此它们支持诸如之类的方法`getYear`，`getDayOfWeek`或例如从历元开始到毫秒`getMillis`。要在脚本中使用它们，请省略`get`前缀并继续使用小写的方法名其余部分。例如，以下代码返回每个冰球运动员的出生年份`getYear()`：
+>
+> 1. getMonth()
+> 2. getDayOfMonth()
+> 3. getDayOfWeek()
+> 4. getDayOfYear()
+> 5. getHour()
+> 6. getMinute()
+> 7. getSecond()
+> 8. getNano()
+
+```http
+# 时间类型的使用
+GET product2/_search
+{
+  "script_fields": {
+    "test_year": {
+      "script": {
+        "source": "doc.createtime.value.year"
+      }
+    }
+  }
+}
+```
