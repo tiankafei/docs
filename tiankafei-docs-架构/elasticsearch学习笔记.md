@@ -2185,3 +2185,21 @@ GET /product/_search
 }
 ```
 
+### 13. `script`关于上下文件对象
+
+1. 在 post 的请求当中, 使用`ctx._source.<field-name>`获取属性的值
+
+2. 在 get 的请求当中，使用`doc['<field-name>']`获取属性的值
+
+3. 在 expression 语言中使用`doc['<field-name>']`获取属性的值
+
+4. 在 painless 语言中使用`doc['<field-name>'].value`获取属性的值
+
+5. 在 painless 语言中，当数组中有对象时，使用`params['_source']['field-name']` 获取属性的值
+
+   ```
+   doc['field-name'].value => params['_source']['field-name']
+   ```
+
+   
+
