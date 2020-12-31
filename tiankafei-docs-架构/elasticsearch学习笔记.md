@@ -1797,13 +1797,19 @@ POST /_bulk
 3. `ES`采用了`circuit breaker`熔断机制避免`fielddata`一次性超过物理内存大小而导致内存溢出，如果触发熔断，查询会被终止并返回异常
 4. `fielddata`使用的是`JVM`内存，`doc_value`在内存不足时会静静的待在磁盘中，而当内存充足时，会缓存到内存里以提升性能
 
-### ES 写入原理
+### ES 流程核心概念
 
-![ES写入原理](/images/ES写入原理.jpg)
+1. `index buffer`：内存缓冲区；一个`node`只有一块`index buffer`，所有`shard`共用。数据会在`index buffer`中排序、压缩
+2. `index segment file`：存储倒排索引的文件，每个`segment`本质上就是一个倒排索引，每秒都会生成一个`segment`文件，当文件过多时`es`会自动进行`segment merge`（合并文件），合并时会同时将已经标注删除的文档物理删除
+3. `commit point`：记录当前所有可用的`segment`（已经被`fsync`以后的数据，不包括在`page cache`的部分），每个`commit point`都会维护一个`.del`文件（`es`删除数据本质是不属于物理删除），当`es`做**删改**操作时首先会在`.del`文件中声明某个`document`已经被删除，文件内记录了在某个`segment`内某个文档已经被删除，当查询请求过来时在`segment`中被删除的文件是能够查出来的，但是当返回结果时会根据`commit point`维护的那个`.del`文件把已经删除的文档过滤掉（真正落磁盘的可能有多份数据，这个记录那个被删掉了）
+4. `translog`：为了防止`elasticsearch`宕机造成数据丢失保证可靠存储，`es`会在每次写入数据的同时写到`translog`日志中(图中会有详解)。`shard`级别，一个`translog`对应一个`shard`
+5. `fsync`：`translog`会每隔`5s`或者在一个变更请求完成之后执行一次`fsync`操作，将`translog`从缓存刷入磁盘，这个操作比较耗时，如果对数据一致性要求不是很高时建议将索引改为异步，如果节点宕机时会有`5s`的数据丢失
+6. `refresh`：`es`接收数据请求时先存入内存中，默认每隔一秒会从内存`buffer`中将数据写入`page cache`，这个过程叫做`refresh`
+7. `flush`：`es`默认每隔30分钟会将`page cache`中的数据刷入磁盘同时清空`translog`日志文件，这个过程叫做`flush`
 
+### ES 写流程
 
-
-
+![ES写入原理](/images/es写入流程.png)
 
 ## ES Scripting
 
