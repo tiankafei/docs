@@ -1797,6 +1797,14 @@ POST /_bulk
 3. `ES`采用了`circuit breaker`熔断机制避免`fielddata`一次性超过物理内存大小而导致内存溢出，如果触发熔断，查询会被终止并返回异常
 4. `fielddata`使用的是`JVM`内存，`doc_value`在内存不足时会静静的待在磁盘中，而当内存充足时，会缓存到内存里以提升性能
 
+### ES 写入原理
+
+![ES写入原理](/images/ES写入原理.jpg)
+
+
+
+
+
 ## ES Scripting
 
 ### 1. 使用`script`执行更新操作
@@ -1908,9 +1916,11 @@ POST _bulk
 ### 6. `script`的其他语言支持
 
 1. GET查询 除了`painless`(默认) ES还支持：
-2. - `expression`(快速的自定义排名和排序) 
-   - `mustache`(范本) 
-   - `java`(专家API)
+2. - `Groovy`：`ES1.4.X`——`ES5.0`
+   - `expression`：每个文档的开销较低：表达式的作用更多，可以非常快速地执行，甚至比编写native脚本还要快，支持javascript语法的子集：单个表达式。缺点：只能访问数字，布尔值，日期和geo_point字段，存储的字段不可用
+   - `mustache`：提供模板参数化查询
+   - `java`
+   - `Painless`：`Painless`是一种专门用于`Elasticsearch`的简单，用于内联和存储脚本，类似于Java，也有注释、关键字、类型、变量、函数等，安全的脚本语言。它是`Elasticsearch`的默认脚本语言，可以安全地用于内联和存储脚本
 
 ```http
 #这些语言应用场景更窄,但是可能性能更好
@@ -1921,6 +1931,17 @@ GET product2/_search
       "script": {
         "lang":   "expression",
         "source": "doc['price']"
+      }
+    }
+  }
+}
+GET product2/_search
+{
+  "script_fields": {
+    "test_field": {
+      "script": {
+        "lang":   "painless",
+        "source": "doc['price'].value"
       }
     }
   }
@@ -2049,7 +2070,10 @@ POST product2/_update/1
 
 ### 9. `Stored scripts`：`script`模板
 
-> 可以理解为`script`模板，缓存在集群的`cache`中，全局缓存；默认缓存大小是`100MB`，没有过期时间，可以手工设置过期时间`script.cache.expire`通过`script.cache.max_size`设置缓存大小，脚本最大`64MB`，通过`script.max_size_in_bytes`配置，有发生变更时重新编译。
+1. 可以理解为`script`模板，缓存在集群的`cache`中，作用域为整个集群
+2. 默认缓存大小是`100MB`，可以通过`script.cache.max_size`设置缓存大小
+3. 没有过期时间，可以通过`script.cache.expire`设置过期时间
+4. 脚本最大`64MB`，可以通过`script.max_size_in_bytes`设置脚本大小；有发生变更时会重新编译
 
 <font color="red">**这里的`post`需要使用`doc`获取属性，因为这个最值是给`get`方法使用的**</font>
 
@@ -2086,7 +2110,7 @@ GET product2/_search
 
 ### 10. `Dates`：日期的使用
 
-> 日期字段公开为`ZonedDateTime`，因此它们支持诸如之类的方法`getYear`，`getDayOfWeek`或例如从`1970年`开始到该时间的毫秒数`getMillis`。要在脚本中使用它们，请省略`get`前缀并首字母小写的驼峰标识。
+> `ZonedDateTime`类型，因此它们支持诸如之类的方法`getYear`，`getDayOfWeek`或例如从`1970年`开始到该时间的毫秒数`getMillis`。要在脚本中使用它们，请省略`get`前缀并首字母小写的驼峰标识。
 >
 > 1. getMonth()
 > 2. getDayOfMonth()
@@ -2186,6 +2210,8 @@ GET /product/_search
 ```
 
 ### 13. `script`关于上下文件对象
+
+> `doc['field'].value`和`params['_source']['field']`：理解之间的区别是很重要的，`doc['field'].value`和`params['_source']['field']`。首先，使用`doc`关键字，将导致该字段的条件被加载到内存（缓存），这将导致更快的执行，但更多的内存消耗。此外，`doc[...]`符号只允许简单类型（不能返回一个复杂类型(`JSON`对象或者`nested`类型)），只有在非分析或单个词条的基础上有意义。但是，`doc`如果可能，使用仍然是从文档访问值的推荐方式，因为`_source`每次使用时都必须加载并解析。使用`_source`非常缓慢
 
 1. 在 post 的请求当中, 使用`ctx._source.<field-name>`获取属性的值
 
