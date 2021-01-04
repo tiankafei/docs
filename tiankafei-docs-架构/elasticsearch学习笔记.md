@@ -2233,5 +2233,290 @@ GET /product/_search
    doc['field-name'].value => params['_source']['field-name']
    ```
 
-   
 
+## 分词器
+
+### 作用
+
+1. 分词
+2. `normalization`（提升`recall`召回率：能搜索到的结果比率）
+
+### 分析器
+
+#### 1. character filter（mapping）
+
+**分词之前预处理**：过滤无用字符、标签等，转换一些&=>and，《Elasticsearch》=> Elasticsearch
+
+1. [HTML Strip Character Filter](https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-htmlstrip-charfilter.html)：`html_strip`；
+
+   - 参数：`escaped_tags`需要保留的`html`标签
+
+   ```http
+   # character filter
+   # HTML Strip Character Filter
+   PUT my_index
+   {
+     "settings": {
+       "analysis": {
+         "char_filter": {
+           "my_char_filter": {
+             "type": "html_strip",
+             "escaped_tags": ["a"]
+           }
+         },
+         "analyzer": {
+           "my_analyzer": {
+             "tokenizer": "keyword",
+             "char_filter": ["my_char_filter"]
+           }
+         }
+       }
+     }
+   }
+   POST my_index/_analyze
+   {
+     "analyzer": "my_analyzer",
+     "text": "<p>I&apos;m so <a>happy</a>!</p>"
+   }
+   ```
+
+2. [Mapping Character Filter](https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-mapping-charfilter.html)：type mapping
+
+   ```http
+   # Mapping Character Filter
+   PUT my_index2
+   {
+     "settings": {
+       "analysis": {
+         "char_filter": {
+           "my_char_filter": {
+             "type": "mapping",
+             "mappings": [
+               "٠ => 0",
+               "١ => 1",
+               "٢ => 2",
+               "٣ => 3",
+               "٤ => 4",
+               "٥ => 5",
+               "٦ => 6",
+               "٧ => 7",
+               "٨ => 8",
+               "٩ => 9"
+             ]
+           }
+         },
+         "analyzer": {
+           "my_analyzer": {
+             "tokenizer": "keyword",
+             "char_filter": [
+               "my_char_filter"
+             ]
+           }
+         }
+       }
+     }
+   }
+   POST my_index2/_analyze
+   {
+     "analyzer": "my_analyzer",
+     "text": "My license plate is ٢٥٠١٥"
+   }
+   ```
+
+3. [Pattern Replace Character Filter](https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-pattern-replace-charfilter.html)：type pattern_replace
+
+   ```http
+   # Pattern Replace Character Filter
+   PUT my_index3
+   {
+     "settings": {
+       "analysis": {
+         "char_filter": {
+           "my_char_filter": {
+             "type": "pattern_replace",
+             "pattern": "(\\d+)-(?=\\d)",
+             "replacement": "$1_"
+           }
+         },
+         "analyzer": {
+           "my_analyzer": {
+             "tokenizer": "standard",
+             "char_filter": ["my_char_filter"]
+           }
+         }
+       }
+     }
+   }
+   POST my_index3/_analyze
+   {
+     "analyzer": "my_analyzer",
+     "text": "123-456-789"
+   }
+   ```
+
+#### 2. tokenizer（分词器）
+
+```http
+GET _analyze
+{
+  "tokenizer" : "standard",
+  "filter" : ["lowercase"],
+  "text" : "THE Quick FoX JUMPs"
+}
+```
+
+```http
+GET /_analyze
+{
+  "tokenizer": "standard",
+  "filter": [
+    {
+      "type": "condition",
+      "filter": [ "lowercase" ],
+      "script": {
+        "source": "token.getTerm().length() < 5"
+      }
+    }
+  ],
+  "text": "THE QUICK BROWN FOX"
+}
+```
+
+#### 3. token filter
+
+停用词、时态转换、大小写转换、同义词转换、语气词处理等。比如：has => have  him => he  apples => apple  the / oh / a=>干掉
+
+```http
+PUT /my_index4
+{
+  "settings": {
+    "analysis": {
+      "analyzer": {
+        "my_analyzer":{
+          "type":"standard",
+          "stopwords":"_english_"
+        }
+      }
+    }
+  }
+}
+# 使用自定义analysis
+GET my_index4/_analyze
+{
+  "analyzer": "my_analyzer",
+  "text": "Teacher Ma is in the restroom"
+}
+# 使用系统自带analysis
+GET my_index4/_analyze
+{
+  "tokenizer": "standard",
+  "filter":["lowercase"],
+  "text": "Teacher Ma is in the restroom"
+}
+```
+
+### ES 内置分词器（7.6有15种自带分词器）
+
+1. `standard analyzer`：默认分词器，中文支持的不理想，会逐字拆分
+   - `max_token_length`：最大令牌长度。如果看到令牌超过此长度，则将其`max_token_length`间隔分割。默认为255
+2. [Pattern Tokenizer](https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-pattern-tokenizer.html)：以正则匹配分隔符，把文本拆分成若干词项
+3. [Simple Pattern Tokenizer](https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-simplepattern-tokenizer.html)：以正则匹配词项，速度比[Pattern Tokenizer](https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-pattern-tokenizer.html)快
+4. `whitespace analyzer`：以空白符分隔`Tim_cookie`
+
+### 自定义分析器
+
+1. `tokenizer`：内置或自定义分词器。（需要）
+2. `char_filter`：内置或自定义[字符过滤器](https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-charfilters.html) 
+3. `filter`：内置或自定义`token filter`
+4. `position_increment_gap`：在为文本值数组建立索引时，`Elasticsearch`在一个值的最后一项和下一个值的第一项之间插入一个假的“空白”，以确保词组查询与来自不同数组元素的两项不匹配。默认为100。查看[position_increment_gap](https://www.elastic.co/guide/en/elasticsearch/reference/current/position-increment-gap.html)更多。
+
+```http
+# 自定义 analysis
+# 设置type为custom告诉Elasticsearch我们正在定义一个定制分析器。将此与配置内置分析器的方式进行比较： type将设置为内置分析器的名称，如 standard或simple
+PUT /test_analysis
+{
+  "settings": {
+    "analysis": {
+      "char_filter": {
+        "test_char_filter": {
+          "type": "mapping",
+          "mappings": [
+            "& => and",
+            "| => or"
+          ]
+        }
+      },
+      "filter": {
+        "test_stopwords": {
+          "type": "stop",
+          "stopwords": ["is","in","at","the","a","for"]
+        }
+      },
+      "tokenizer": {
+        "punctuation": { 
+          "type": "pattern",
+          "pattern": "[ .,!?]"
+        }
+      },
+      "analyzer": {
+        "my_analyzer": {
+          "type": "custom",
+          "char_filter": [
+            "html_strip",
+            "test_char_filter"
+          ],
+          "tokenizer": "standard",
+          "filter": ["lowercase","test_stopwords"]
+        }
+      }
+    }
+  }
+}
+GET /test_analysis/_analyze
+{
+  "text": "Teacher ma & zhang also thinks [mother's friends] is good | nice!!!",
+  "analyzer": "my_analyzer"
+}
+```
+
+### 中文分词器
+
+1. `IK`分词：`ES`的安装目录  不要有中文和空格
+
+   1. 下载：https://github.com/medcl/elasticsearch-analysis-ik
+   2. 创建插件文件夹 `cd your-es-root/plugins/ && mkdir ik`
+   3. 将插件解压缩到文件夹`your-es-root/plugins/ik`
+   4. 重新启动`es`
+
+2. 两种`analyzer`
+
+   1. `ik_max_word`：细粒度
+   2. `ik_smart`：粗粒度
+
+   ```http
+   GET _analyze
+   {
+     "analyzer": "ik_smart",
+     "text" : "我爱中华人民共和国"
+   }
+   GET _analyze
+   {
+     "analyzer": "ik_max_word",
+     "text" : "我爱中华人民共和国"
+   }
+   ```
+
+3. `IK`文件描述
+
+   1. `IKAnalyzer.cfg.xml`：IK分词配置文件
+   2. 主词库：`main.dic`
+   3. 英文停用词：`stopword.dic`，不会建立在倒排索引中
+   4. 特殊词库：
+      - `quantifier.dic`：特殊词库：计量单位等
+      - `suffix.dic`：特殊词库：后缀名
+      - `surname.dic`：特殊词库：百家姓
+      - `preposition`：特殊词库：语气词
+   5. 自定义词库：比如当下流行词：857、emmm...、渣女、舔屏、996
+   6.  热更新
+      1. 修改`ik`分词器源码（**最好是通过扩展的方式，不要硬改源码**）
+      2. 基于`ik`分词器原生支持的热更新方案，部署一个`web`服务器，提供一个`http`接口，通过`modified`和`tag`两个`http`响应头，来提供词语的热更新
