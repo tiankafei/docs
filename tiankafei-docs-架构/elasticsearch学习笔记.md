@@ -1106,7 +1106,344 @@ GET /_search/scroll
 
 ### 17. filter缓存原理
 
+## ES 查询相关
 
+### 1. 前缀搜索
+
+> 以`xx`开头的搜索，不计算相关度评分，和`filter`比，没有`bitcache`(`filter`的缓存，为了增加性能)。前缀搜索，尽量把前缀长度设置的更长，性能差。**搜索原理：搜索的是倒排索引；搜索的关键字需要进行分词，分词后的每一个词都要进行全表扫描倒排索引进行匹配，引性能特别慢**。`index_prefixes`: 默认`min_chars`：2,  `max_chars`：5
+
+```http
+# 前缀搜索
+POST /my_index/_bulk
+{ "index": { "_id": "1"} }
+{ "text": "城管打电话喊商贩去摆摊摊" }
+{ "index": { "_id": "2"} }
+{ "text": "笑果文化回应商贩老农去摆摊" }
+{ "index": { "_id": "3"} }
+{ "text": "老农耗时17年种出椅子树" }
+{ "index": { "_id": "4"} }
+{ "text": "夫妻结婚30多年AA制,被城管抓" }
+{ "index": { "_id": "5"} }
+{ "text": "黑人见义勇为阻止抢劫反被铐住" }
+# 查不出结果的原因是：使用了es的默认分词器，对中文支持的不太友好，这个分词器会把中文一个字一个字的拆开
+GET my_index/_search
+{
+  "query": {
+    "prefix": {
+      "text": {
+        "value": "城管"
+      }
+    }
+  }
+}
+# 测试默认中文分词器
+GET /_analyze
+{
+  "text": "城管打电话喊商贩去摆摊摊",
+  "analyzer": "standard"
+}
+```
+
+```http
+# 前缀搜索
+POST /my_index/_bulk
+{ "index": { "_id": "1"} }
+{ "text": "my english" }
+{ "index": { "_id": "2"} }
+{ "text": "my english is good" }
+{ "index": { "_id": "3"} }
+{ "text": "my chinese is good" }
+{ "index": { "_id": "4"} }
+{ "text": "my japanese is nice" }
+{ "index": { "_id": "5"} }
+{ "text": "my disk is full" }
+# 英文默认分词器是好用的
+GET /_analyze
+{
+  "text": "my chinese is good",
+  "analyzer": "standard"
+}
+# 英文的前缀搜索是好用的
+GET my_index/_search
+{
+  "query": {
+    "prefix": {
+      "text": "ch"
+    }
+  }
+}
+```
+
+```http
+# 设置默认的 启动索引 加快前缀搜索速度 index_prefixes: 默认min_chars:2, max_chars:5；es 会根据设置的参数建立倒排索引 
+PUT my_index
+{
+  "mappings": {
+    "properties": {
+      "text": {
+        "type": "text",
+        "index_prefixes": {
+          "min_chars":2,
+          "max_chars":4
+        }    
+      }
+    }
+  }
+}
+```
+
+### 2. 通配符搜索
+
+```http
+GET my_index/_search
+{
+  "query": {
+    "wildcard": {
+      "text": {
+        "value": "eng?ish"
+      }
+    }
+  }
+}
+# 数据还是用的之前的 product 索引的数据
+# 匹配的是倒排索引
+GET product/_search
+{
+  "query": {
+    "wildcard": {
+      "name": {
+        "value": "xia?mi"
+      }
+    }
+  }
+}
+# 数据还是用的之前的 product 索引的数据
+# 匹配的是文档数据
+GET product/_search
+{
+  "query": {
+    "wildcard": {
+      "name.keyword": {
+        "value": "xiaomi*nfc*",
+        "boost": 1.0
+      }
+    }
+  }
+}
+```
+
+### 3. 正则搜索
+
+`regexp`查询的性能可以根据提供的正则表达式而有所不同。为了提高性能，应避免使用通配符模式，如`.*`或 `.*?+`未经前缀或后缀。flags参数值：
+
+1. `ALL`(`Default`)：启用所有可选操作符。
+
+2. `COMPLEMENT`：启用~操作符。可以使用`~`对下面最短的模式进行否定。例如：
+
+   - a~bc  # matches 'adc' and 'aec' but not 'abc'
+
+3. `INTERVAL`：启用`<>`操作符。可以使用`<>`匹配数值范围。例如：
+
+   - foo<1-100>    # matches 'foo1', 'foo2' ... 'foo99', 'foo100'
+
+   - foo<01-100>   # matches 'foo01', 'foo02' ... 'foo99', 'foo100'
+
+4. `INTERSECTION`：启用&操作符，它充当AND操作符。如果左边和右边的模式都匹配，则匹配成功。例如：
+
+   - aaa.+&.+bbb  # matches 'aaabbb'
+
+5. `ANYSTRING`：启用@操作符。您可以使用@来匹配任何整个字符串。您可以将@操作符与&和~操作符组合起来，创建一个“everything except”逻辑。例如：
+
+   - @&~(abc.+)  # matches everything except terms beginning with 'abc'
+
+```http
+# 正则搜索
+GET product/_search
+{
+  "query": {
+    "regexp": {
+      "name": {
+        "value": "[\\s\\S]*nfc[\\s\\S]*",
+        "flags": "ALL",
+        "max_determinized_states": 10000,
+        "rewrite": "constant_score"
+      }
+    }
+  }
+}
+# 更新数据
+PUT /product/_doc/1
+{
+  "testid":"123456",
+  "text":"shouji zhong 2020-05-20 de zhandouji"
+}
+GET /_analyze
+{
+  "text": "shouji zhong 2020-05-20 de zhandouji",
+  "analyzer": "ik_max_word"
+}
+# 为什么没有结果，因为默认的标准分词器会把2020-05-20分成3个词，倒排索引中没有2020-05-20
+GET product/_search
+{
+  "query": {
+    "regexp": {
+      "text": {
+        "value": ".*2020-05-20.*",
+        "flags": "ALL"
+      }
+    }
+  }
+}
+# 这样就可以查出来结果，但是不建议使用这种方式，性能特别慢
+GET product/_search
+{
+  "query": {
+    "regexp": {
+      "text.keyword": {
+        "value": ".*2020-05-20.*",
+        "flags": "ALL"
+      }
+    }
+  }
+}
+```
+
+```http
+# 创建索引时设置分词器
+PUT my_index
+{
+  "mappings": {
+    "properties": {
+      "text": {
+        "type": "text",
+        "analyzer": "ik_max_word",
+        "search_analyzer": "ik_max_word"
+      }
+    }
+  }
+}
+# 插入数据
+PUT /my_index/_doc/1
+{
+  "testid":"123456",
+  "text":"shouji zhong 2020-05-20 de zhandouji"
+}
+# 使用ik分词器进行查询方式二
+GET /my_index/_search
+{
+  "query": {
+    "regexp": {
+      "text": {
+        "value": ".*2020-05-20.*",
+        "flags": "ALL"
+      }
+    }
+  }
+}
+```
+
+```http
+# flags：INTERVAL方式查询
+GET my_index/_search
+{
+  "query": {
+    "regexp": {
+      "text": {
+        "value": ".*<1-4>.*",
+        "flags": "INTERVAL"
+      }
+    }
+  }
+}
+GET product/_search
+{
+  "query": {
+    "regexp": {
+      "desc": {
+        "value": ".*zh~eng.*",
+        "flags": "INTERVAL"
+      }
+    }
+  }
+}
+```
+
+### 4. 模糊搜索：fuzzy
+
+#### 模糊的几种情况
+
+1. 混淆字符 (box → fox)
+2. 缺少字符 (black → lack)
+3. 多出字符 (sic → sick)
+4. 颠倒次序 (act → cat)
+
+#### fuzzy的参数
+
+1. `value`：要搜索的关键字	
+
+2. `fuzziness`：（可选，字符串）最大误差  并非越大越好，召回率高 但是结果不准确
+
+   - 两段文本之间的`Damerau-Levenshtein`距离是使一个字符串与另一个字符串匹配所需的插入、删除、替换和调换的数量
+
+   - 1) 距离公式：`Levenshtein`是`lucene`的，es改进版：`Damerau-Levenshtein`，
+
+     `axe`=>`aex` `Levenshtein`=2  `Damerau-Levenshtein`=1
+
+3. `max_expansions`：（可选，整数）匹配的最大词项数量。默认为50
+
+4. `prefix_length`：创建扩展时保留不变的开始字符数。默认为0
+
+   避免在`max_expansions`参数中使用较高的值，尤其是当`prefix_length`参数值为时0。`max_expansions`由于检查的变量数量过多，参数中的高值 可能导致性能不佳
+
+5. `transpositions`：（可选，布尔值）指示编辑是否包括两个相邻字符的变位（ab→ba）。默认为`true`
+
+6. `rewrite`：（可选，字符串）用于重写查询的方法：[https://www.elastic.co/cn/blog/found-fuzzy-search#performance-considerations](#performance-considerations)
+
+```http
+# 查询语句
+GET /my_index/_search 
+{
+  "query": {
+    "fuzzy": {
+      "text": {
+        "value": "shouai",
+        "fuzziness": 2
+      }
+    }
+  }
+}
+# shouai容错的搜索结果
+{
+	"_source" : {
+          "testid" : "123456",
+          "text" : "shouji zhong 2020-05-20 de zhandouji"
+        }
+}
+GET /my_index/_search 
+{
+  "query": {
+    "fuzzy": {
+      "text": {
+        "value": "shouai",
+        "fuzziness": "AUTO"
+      }
+    }
+  }
+}
+```
+
+### 5. match_phrase_prefix讲解
+
+`match_phrase_prefix`与`match_phrase`相同（不会被分词），但是它多了一个特性，就是它允许在文本的最后一个词项`(term)`上的前缀匹配；如果 是一个单词，比如`a`，它会匹配文档字段所有以`a`开头的文档，如果是一个短语，比如 `this is ma`，他会先在倒排索引中做以`ma`做前缀搜索，然后在匹配到的`doc`中做`match_phrase`查询，(网上有的说是先`match_phrase`，然后再进行前缀搜索, 是不对的)
+
+#### 参数
+
+1. `analyzer`指定何种分析器来对该短语进行分词处理
+2. `max_expansions`限制匹配的最大词项
+3. `boost`用于设置该查询的权重
+4. `slop`允许短语间的词项`(term)`间隔
+
+> `slop`参数告诉`match_phrase`查询词条相隔多远时仍然能将文档视为匹配 什么是相隔多远？ 意思是说为了让查询和文档匹配你需要移动词条多少次？
 
 ## Mapping
 
@@ -2504,6 +2841,11 @@ GET /test_analysis/_analyze
      "analyzer": "ik_max_word",
      "text" : "我爱中华人民共和国"
    }
+   GET _analyze
+   {
+     "analyzer": "standard",
+     "text" : "我爱中华人民共和国"
+   }
    ```
 
 3. `IK`文件描述
@@ -2520,3 +2862,6 @@ GET /test_analysis/_analyze
    6.  热更新
       1. 修改`ik`分词器源码（**最好是通过扩展的方式，不要硬改源码**）
       2. 基于`ik`分词器原生支持的热更新方案，部署一个`web`服务器，提供一个`http`接口，通过`modified`和`tag`两个`http`响应头，来提供词语的热更新
+
+## ES Java API
+
