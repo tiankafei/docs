@@ -1445,6 +1445,162 @@ GET /my_index/_search
 
 > `slop`参数告诉`match_phrase`查询词条相隔多远时仍然能将文档视为匹配 什么是相隔多远？ 意思是说为了让查询和文档匹配你需要移动词条多少次？
 
+## ES 查询总结
+
+### [match、term、match_phrase、query_string的区别](https://www.cnblogs.com/chenmz1995/p/10199147.html)
+
+#### 准备数据
+
+```http
+# 插入数据
+PUT /product/_doc/1
+{
+    "name" : "xiaomi phone",
+    "desc" :  "shouji zhong de zhandouji",
+    "price" :  3999,
+    "tags": [ "xingjiabi", "fashao", "buka" ]
+}
+PUT /product/_doc/2
+{
+    "name" : "xiaomi nfc phone",
+    "desc" :  "zhichi quangongneng nfc,shouji zhong de jianjiji",
+    "price" :  4999,
+    "tags": [ "xingjiabi", "fashao", "gongjiaoka" ]
+}
+PUT /product/_doc/3
+{
+    "name" : "nfc phone",
+    "desc" :  "shouji zhong de hongzhaji",
+    "price" :  2999,
+    "tags": [ "xingjiabi", "fashao", "menjinka" ]
+}
+PUT /product/_doc/4
+{
+    "name" : "xiaomi erji",
+    "desc" :  "erji zhong de huangmenji",
+    "price" :  999,
+    "tags": [ "low", "bufangshui", "yinzhicha" ]
+}
+PUT /product/_doc/5
+{
+    "name" : "hongmi erji",
+    "desc" :  "erji zhong de kendeji",
+    "price" :  399,
+    "tags": [ "lowbee", "xuhangduan", "zhiliangx" ]
+}
+```
+
+#### match
+
+```http
+# 查询所有
+GET /product/_search
+{
+  "query":{
+    "match_all": {}
+  }
+}
+# match分词，text也分词，只要match的分词结果和text的分词结果有相同的就匹配
+# nfc phone会被分成两个词，分别匹配倒排索引
+GET /product/_search
+{
+  "query": {
+    "match": {
+      "name": "nfc phone"
+    }
+  }
+}
+# match会被分词，而keyword不会被分词，match的需要跟keyword的完全匹配可以
+GET /product/_search
+{
+  "query": {
+    "match": {
+      "name.keyword": "xiaomi nfc phone"
+    }
+  }
+}
+```
+
+#### term
+
+```http
+# term 查询关键字不会被分词，倒排所用中没有'nfc phone'这个词，所以查询不到结果
+GET /product/_search
+{
+  "query": {
+    "term": {
+      "name": "nfc phone"
+    }
+  }
+}
+# text字段会分词，而term 查询关键字不会被分词，所以term查询的条件必须是text字段分词后的某一个才可以
+GET /product/_search
+{
+  "query": {
+    "term": {
+      "name": "nfc"
+    }
+  }
+}
+# term 查询关键字不会被分词，而keyword字段也不分词。需要完全匹配才可
+GET /product/_search
+{
+  "query": {
+    "term": {
+      "name.keyword": "nfc phone"
+    }
+  }
+}
+```
+
+#### match_phrase
+
+```http
+# match_phrase是分词的，text也是分词的。match_phrase的分词结果必须在text字段分词中都包含（且不支持前缀搜索），而且顺序必须相同，而且必须都是连续的
+GET /product/_search
+{
+  "query": {
+    "match_phrase": {
+      "desc": "shouji zhong"
+    }
+  }
+}
+# match_phrase是分词的，而keyword字段不分词。需要完全匹配才可
+GET /product/_search
+{
+  "query": {
+    "match_phrase": {
+      "desc.keyword": "shouji zhong"
+    }
+  }
+}
+```
+
+#### query_string
+
+```http
+# query_string是分词的，text也是分词的。分词之后，每一个词可支持前缀搜索，故不要求顺序
+GET /product/_search
+{
+  "query": {
+    "query_string": {
+      "query": "zhong shouji",
+      "fields": ["desc"]
+    }
+  }
+}
+# query_string是分词的，而keyword字段不分词。需要完全匹配才可
+GET /product/_search
+{
+  "query": {
+    "query_string": {
+      "query": "shouji zhong de zhandouji",
+      "fields": ["desc.keyword"]
+    }
+  }
+}
+```
+
 ## Mapping
 
 ### 1. 概念
