@@ -1434,7 +1434,7 @@ GET /my_index/_search
 
 ### 5. match_phrase_prefix讲解
 
-`match_phrase_prefix`与`match_phrase`相同（不会被分词），但是它多了一个特性，就是它允许在文本的最后一个词项`(term)`上的前缀匹配；如果 是一个单词，比如`a`，它会匹配文档字段所有以`a`开头的文档，如果是一个短语，比如 `this is ma`，他会先在倒排索引中做以`ma`做前缀搜索，然后在匹配到的`doc`中做`match_phrase`查询，(网上有的说是先`match_phrase`，然后再进行前缀搜索, 是不对的)
+`match_phrase_prefix`与`match_phrase`相同，但是它多了一个特性，就是它允许在文本的最后一个词项`(term)`上的前缀匹配；如果 是一个单词，比如`a`，它会匹配文档字段所有以`a`开头的文档，如果是一个短语，比如 `this is ma`，他会先在倒排索引中做以`ma`做前缀搜索，然后在匹配到的`doc`中做`match_phrase`查询，(网上有的说是先`match_phrase`，然后再进行前缀搜索, 是不对的)
 
 #### 参数
 
